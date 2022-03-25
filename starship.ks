@@ -22,18 +22,18 @@ draw_arrows(list(
 local p_gain is 2.775.
 local i_gain is 1.3875.
 local d_gain is 1.3875.
-local pitch_pid is pidloop(p_gain, i_gain, d_gain, -35, 35).
+local pitch_pid is pidloop(p_gain, i_gain, d_gain, -33, 33).
 set pitch_pid:setpoint to 0.
 
 //      ROLL-PID
 local roll_p_gain is 0.6.
-local roll_i_gain is 0.
-local roll_d_gain is 0.
-local roll_pid is pidloop(roll_p_gain, roll_i_gain, roll_d_gain, -3, 3).
+local roll_i_gain is 0.1.
+local roll_d_gain is 0.1.
+local roll_pid is pidloop(roll_p_gain, roll_i_gain, roll_d_gain, -5, 5).
 set roll_pid:setpoint to 0.
 
 
-set rotation_d_gain to 4.
+set rotation_d_gain to 3.
 set SteeringManager:yawpid:kd to rotation_d_gain.
 set SteeringManager:pitchpid:kd to rotation_d_gain.
 set SteeringManager:rollpid:kd to rotation_d_gain.
@@ -57,7 +57,6 @@ lock nose_up to vectorexclude(plane_vector, up:forevector).
 lock steering to nose_up.
 lock air_drag to ship:q * ship:airspeed^2.
 
-set SteeringManager:MAXSTOPPINGTIME to 5.
 
 until air_drag > drag_threshold or ship:altitude < max_altitude
 {
@@ -66,7 +65,6 @@ until air_drag > drag_threshold or ship:altitude < max_altitude
     wait 0.
 }
 rcs off.
-print "" at (0, 3).
 unlock nose_up.
 unlock steering.
 unlock air_drag.
@@ -94,20 +92,61 @@ until ship:altitude < min_altitude
 }
 
 // LANDING LETSS GOO!!
-clearScreen.
-print "Landing".
+{
+    clearScreen.
+    print "Landing".
 
-move_flaps(38, 0).
-rcs on.
-set navMode to "SURFACE".
+    // // SAS
+    // sas on.
+    // wait 0.
+    // set sasMode to "RETROGRADE".
+    // when sasMode <> "RETROGRADE" then
+    // {
+    //     set sasMode to "RETROGRADE".
+    //     preserve.
+    // }
 
-// SAS
-sas on.
-wait 0.
-set sasMode to "RETROGRADE".
+    // Flip'n'burn
+    move_flaps(0, 0).   // Set flaps to neutral
 
-// Engine
-stage.
-lock throttle to 0.2.
+    rcs on.
+    set navMode to "SURFACE".
+    stage.
+    local twr is 1.2.
+    lock throttle to twr * ship:mass * constant:g0 / ship:availablethrust.
+    local steering_target is "RETROGRADE".
+    lock steering to ship:retrograde.
 
-wait until alt:radar < 10.
+    // calculate exact thrust
+    when vAng(ship:facing:forevector, up:forevector) < 10 then
+    {
+        local ship_height is 10.
+        lock throttle to ship:mass * (ship:verticalspeed^2 * 0.5 / (alt:radar - ship_height) + constant:g0) / ship:availablethrust.
+    }
+
+    // Velocity too small to rely on retrograde
+    when ship:groundspeed < 2 then
+    {
+        set steering_target to "UP".
+        lock steering to up.
+    }
+
+    // Time to extend gear
+    local extension_time is 1.5.
+    lock estimated_time to 2 * alt:radar / ship:verticalspeed.
+    when estimated_time <= extension_time then
+    {
+        gear on.
+    }
+
+    // Detecting landing
+    until ship:status = "LANDED"
+    {
+        print "Status: " + ship:status at (0, 5).
+        print "Lock:   " + steering_target at (0, 6).
+
+    }
+    unlock throttle.
+}
+
+wait 3.
