@@ -46,8 +46,8 @@ log "I gain: " + i_gain to ship_log.txt.
 log "D gain: " + d_gain to ship_log.txt.
 
 // Test init
-local min_altitude is 5000.
-local max_altitude is 70000.
+local min_altitude is 1000.
+local max_altitude is 55000.
 local drag_threshold is 3000.
 
 // RCS control

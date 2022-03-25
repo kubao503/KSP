@@ -45,21 +45,21 @@ set rr_flap to SHIP:PARTSTAGGED("rr_flap")[0]:getmodule("ModuleControlSurface").
 //     aft_flap_2:setfield("Deploy Angle", angle).
 // }
 
-function arccos_steer
-{
-    parameter surface.
+// function arccos_steer
+// {
+//     parameter surface.
 
-    return -arccos(surface) + constant:pi * 0.25.
-}
+//     return -arccos(surface) + constant:pi * 0.25.
+// }
 
 function move_flaps
 {
     parameter pitch.
     parameter roll.
-    // fl_flap:setfield("Deploy Angle", pitch - roll).
-    // fr_flap:setfield("Deploy Angle", pitch + roll).
-    // rl_flap:setfield("Deploy Angle", -pitch - roll).
-    // rr_flap:setfield("Deploy Angle", -pitch + roll).
+    fl_flap:setfield("Deploy Angle", pitch - roll).
+    fr_flap:setfield("Deploy Angle", pitch + roll).
+    rl_flap:setfield("Deploy Angle", -pitch - roll).
+    rr_flap:setfield("Deploy Angle", -pitch + roll).
     print "Pitch: " + pitch at (0, 17).
     print "Roll:  " + roll at (0, 18).
     // move_front_flaps(-pitch).
