@@ -26,7 +26,7 @@ function period
 // set front_flap_2 to front_flaps[1]:getmodule("ModuleControlSurface").
 // set aft_flap_1 to aft_flaps[0]:getmodule("ModuleControlSurface").
 // set aft_flap_2 to aft_flaps[1]:getmodule("ModuleControlSurface").
-set fl_flap to SHIP:PARTSTAGGED("fl_flap")[0]:getmodule("ModuleControlSurface").
+//set fl_flap to SHIP:PARTSTAGGED("fl_flap")[0]:getmodule("ModuleControlSurface").
 set fr_flap to SHIP:PARTSTAGGED("fr_flap")[0]:getmodule("ModuleControlSurface").
 set rl_flap to SHIP:PARTSTAGGED("rl_flap")[0]:getmodule("ModuleControlSurface").
 set rr_flap to SHIP:PARTSTAGGED("rr_flap")[0]:getmodule("ModuleControlSurface").

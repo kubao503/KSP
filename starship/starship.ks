@@ -13,8 +13,7 @@ lock roll_error to vang(plane_vector, ship:facing:starvector) - 90.
 
 // Arrows setup
 draw_arrows(list(
-    {return plane_vector.},
-    {return ship:facing:starvector.}
+    {return plane_vector.}
 )).
 
 // PID setup
@@ -22,14 +21,14 @@ draw_arrows(list(
 local p_gain is 2.775.
 local i_gain is 1.3875.
 local d_gain is 1.3875.
-local pitch_pid is pidloop(p_gain, i_gain, d_gain, -33, 33).
+local pitch_pid is pidloop(p_gain, i_gain, d_gain, -35, 35).
 set pitch_pid:setpoint to 0.
 
 //      ROLL-PID
 local roll_p_gain is 0.6.
 local roll_i_gain is 0.1.
 local roll_d_gain is 0.1.
-local roll_pid is pidloop(roll_p_gain, roll_i_gain, roll_d_gain, -5, 5).
+local roll_pid is pidloop(roll_p_gain, roll_i_gain, roll_d_gain, -3, 3).
 set roll_pid:setpoint to 0.
 
 
@@ -107,7 +106,7 @@ until ship:altitude < min_altitude
     // }
 
     // Flip'n'burn
-    move_flaps(0, 0).   // Set flaps to neutral
+    move_flaps(29, 0).   // Set flaps to neutral
 
     rcs on.
     set navMode to "SURFACE".
@@ -122,13 +121,22 @@ until ship:altitude < min_altitude
     {
         local ship_height is 10.
         lock throttle to ship:mass * (ship:verticalspeed^2 * 0.5 / (alt:radar - ship_height) + constant:g0) / ship:availablethrust.
+        move_flaps(0, 0).   // Set flaps to neutral
     }
 
+    local horizontal_speed_threshold is 2.
+
     // Velocity too small to rely on retrograde
-    when ship:groundspeed < 2 then
+    when ship:groundspeed < horizontal_speed_threshold then
     {
-        set steering_target to "UP".
+        set steering_target to "UP        ".
         lock steering to up.
+    }
+
+    when ship:groundspeed >= horizontal_speed_threshold then
+    {
+        set steering_target to "RETROGRADE".
+        lock steering to ship:retrograde.
     }
 
     // Time to extend gear
@@ -139,12 +147,13 @@ until ship:altitude < min_altitude
         gear on.
     }
 
+    local prt to SHIP:PARTSTAGGED("fl_flap")[0]:getmodule("modulecontrolsurface").
     // Detecting landing
     until ship:status = "LANDED"
     {
-        print "Status: " + ship:status at (0, 5).
+        print "Status: " + ship:status + "      " at (0, 5).
         print "Lock:   " + steering_target at (0, 6).
-
+        print prt:allfieldnames at (0, 10).
     }
     unlock throttle.
 }
