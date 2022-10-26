@@ -134,7 +134,7 @@ local function BinarySearch
 }
 
 
-function GetAngle
+function TorqueToAngle
 {
 	parameter torque.
 	return BinarySearch(torque) - defaultDeployAngle.
