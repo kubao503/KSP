@@ -4,12 +4,12 @@ run once torque_to_angle.
 run once pid.
 run once stats.
 
-local pGain is 0.05.
+local pGain is 0.087.
 local iGain is 0.
 local dGain is 0.
 
 local minQ is 0.006.
-local logName is "flight_log.txt".
+local logFile is "flight_log.txt".
 
 RCSFlight().
 FlapsFlight().
@@ -34,7 +34,8 @@ function RCSFlight
 function FlapsFlight
 {
     clearscreen.
-    log "P gain: " + pGain + ";I gain: " + iGain + ";D gain: " + dGain to logName.
+    deletepath(logFile).
+    log "P gain: " + pGain + ";I gain: " + iGain + ";D gain: " + dGain to logFile.
     setPidValues(pGain, iGain, dGain).
 
     SAS off.
@@ -57,7 +58,7 @@ function FlapsFlight
         print "Torque: " + torque at (0, 14).
         print "Drag: " + drag at (0, 16).
 
-        log pitchError + ";" + torque + ";" + Period(pitchError) to logName.
+        log pitchError + ";" + torque + ";" + drag + ";" + Period(pitchError) to logFile.
 
         wait 0.
     }
