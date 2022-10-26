@@ -16,20 +16,6 @@ draw_arrows(list(
     {return plane_vector.}
 )).
 
-// PID setup
-//      PICH-PID
-local p_gain is 2.775.
-local i_gain is 1.3875.
-local d_gain is 1.3875.
-local pitch_pid is pidloop(p_gain, i_gain, d_gain, -35, 35).
-set pitch_pid:setpoint to 0.
-
-//      ROLL-PID
-local roll_p_gain is 0.6.
-local roll_i_gain is 0.1.
-local roll_d_gain is 0.1.
-local roll_pid is pidloop(roll_p_gain, roll_i_gain, roll_d_gain, -3, 3).
-set roll_pid:setpoint to 0.
 
 
 set rotation_d_gain to 3.

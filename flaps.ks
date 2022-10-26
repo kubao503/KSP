@@ -1,46 +1,59 @@
 local function GetAeroSurface
 {
     parameter partTag.
-    return ship:partstagged(partTag)[0]:getmodule("ModuleAeroSurface").
+    local parts is ship:partstagged(partTag).
+    local modules is list().
+    for part in parts
+    {
+        modules:add(part:getmodule("ModuleAeroSurface")).
+    }
+    return modules.
 }
 
 
 // Constants
-local maxAngle is 90.
-local minAngle is 30.
-local defaultDeployAngle is 60.
+global defaultDeployAngle is 45.
+global MaxAbsAngle is min(defaultDeployAngle, 90 - defaultDeployAngle).
 local retractAngle is 0.
 
+// List of airbreaks assossiated with flaps
 local flapFL is GetAeroSurface("fl_flap").
 local flapFR is GetAeroSurface("fr_flap").
 local flapRL is GetAeroSurface("rl_flap").
 local flapRR is GetAeroSurface("rr_flap").
 
+local function SetOneFlapAngle
+{
+    parameter flaps.
+    parameter angle.
+    for flap in flaps
+    {
+        flap:setfield("Deploy Angle", angle).
+    }
+}
+
 
 function SetFlapsAngle
 {
     parameter angle.
-    local frontAngle is ClampAngle(defaultDeployAngle + angle).
-    local rearAngle is ClampAngle(defaultDeployAngle - angle).
-    flapFL:setfield("Deploy Angle", frontAngle).
-    flapFR:setfield("Deploy Angle", frontAngle).
-    flapRL:setfield("Deploy Angle", rearAngle).
-    flapRR:setfield("Deploy Angle", rearAngle).
+    SetOneFlapAngle(flapFL, defaultDeployAngle + angle).
+    SetOneFlapAngle(flapFR, defaultDeployAngle + angle).
+    SetOneFlapAngle(flapRL, defaultDeployAngle - angle).
+    SetOneFlapAngle(flapRR, defaultDeployAngle - angle).
 }
 
 
 function RetractFlaps
 {
-    flapFL:setfield("Deploy Angle", retractAngle).
-    flapFR:setfield("Deploy Angle", retractAngle).
-    flapRL:setfield("Deploy Angle", retractAngle).
-    flapRR:setfield("Deploy Angle", retractAngle).
+    SetOneFlapAngle(flapFL, retractAngle).
+    SetOneFlapAngle(flapFR, retractAngle).
+    SetOneFlapAngle(flapRL, retractAngle).
+    SetOneFlapAngle(flapRR, retractAngle).
 }
 
 
-// Clamps angle between minAngle and maxAngle
-local function ClampAngle
+function ClampFlapsAngle
 {
     parameter angle.
-    return min(max(angle, minAngle), maxAngle).
+    return max(min(angle, MaxAbsAngle), -MaxAbsAngle).
 }
