@@ -4,12 +4,14 @@ run once torque_to_angle.
 run once pid.
 run once stats.
 
-local pGain is 0.087.
-local iGain is 0.
+local pGain is 0.0225.
+local iGain is 0.0045.
 local dGain is 0.
 
 local minQ is 0.006.
 local logFile is "flight_log.txt".
+
+list RCS in rcsList.
 
 RCSFlight().
 FlapsFlight().
@@ -20,6 +22,12 @@ function RCSFlight
     clearscreen.
     RetractFlaps().
     rcs on.
+    for rcsThruster in rcsList
+    {
+        set rcsThruster:pitchenabled to true.
+        set rcsThruster:yawenabled to true.
+        set rcsThruster:deadband to 0.05.
+    }
     set sasmode to "NORMAL".
     sas on.
 
@@ -38,14 +46,20 @@ function FlapsFlight
     log "P gain: " + pGain + ";I gain: " + iGain + ";D gain: " + dGain to logFile.
     setPidValues(pGain, iGain, dGain).
 
-    SAS off.
-    rcs off.
+    for rcsThruster in rcsList
+    {
+        set rcsThruster:pitchenabled to false.
+        set rcsThruster:yawenabled to false.
+        set rcsThruster:deadband to 0.004.
+    }
+    //SAS off.
+    //rcs off.
 
     lock airVelocity to ship:velocity:surface.
     lock pitchError to vang(airVelocity, ship:facing:forevector) - 90.
 
     // The stronger the dynamic pressure the smaller the flap movement
-    lock drag to max(1, ship:q / minQ).
+    lock drag to max(1, GetShipDrag() * 42).
 
     lock torque to PIDUpdate(pitchError).
     lock flapsAngle to ClampFlapsAngle(TorqueToAngle(torque / drag)).

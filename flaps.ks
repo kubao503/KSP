@@ -22,6 +22,16 @@ local flapFR is GetAeroSurface("fr_flap").
 local flapRL is GetAeroSurface("rl_flap").
 local flapRR is GetAeroSurface("rr_flap").
 
+local minDrag is 0.0001.
+lock shipDrag to flapFL[0]:getfield("drag") / max(flapFL[0]:getfield("Deploy Angle"), minDrag).
+
+
+function GetShipDrag
+{
+    return shipDrag.
+}
+
+
 local function SetOneFlapAngle
 {
     parameter flaps.
