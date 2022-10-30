@@ -4,9 +4,9 @@ run once torque_to_angle.
 run once pid.
 run once stats.
 
-local pGain is 0.0225.
-local iGain is 0.0018.
-local dGain is 0.
+local pGain is 0.03.
+local iGain is 0.004.
+local dGain is 0.05625.
 
 local minQ is 0.006.
 local logFile is "flight_log.txt".
