@@ -5,7 +5,7 @@ run once pid.
 run once stats.
 
 local pGain is 0.0225.
-local iGain is 0.0045.
+local iGain is 0.0018.
 local dGain is 0.
 
 local minQ is 0.006.
@@ -20,7 +20,7 @@ FlapsFlight().
 function RCSFlight
 {
     clearscreen.
-    RetractFlaps().
+    SetFlapsAngle(0).
     rcs on.
     for rcsThruster in rcsList
     {
@@ -72,7 +72,7 @@ function FlapsFlight
         print "Torque: " + torque at (0, 14).
         print "Drag: " + drag at (0, 16).
 
-        log pitchError + ";" + torque + ";" + drag + ";" + Period(pitchError) to logFile.
+        log pitchError + ";" + PidOutput[0] + ";" + PidOutput[1] + ";" + PidOutput[2] + ";" + Period(pitchError) to logFile.
 
         wait 0.
     }

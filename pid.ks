@@ -4,10 +4,13 @@
 //local dGain is 1.3875.
 
 
+global PidOutput to list(0, 0, 0).
+
 
 function PIDUpdate
 {
     parameter pitchError.
+    set PidOutput to list(pitchPID:pterm, pitchPID:iterm, pitchPID:dterm).
     return pitchPID:update(time:seconds, pitchError).
 }
 
