@@ -45,11 +45,11 @@ local function SetOneFlapAngle
 
 function SetFlapsAngle
 {
-    parameter angle.
-    SetOneFlapAngle(flapFL, defaultDeployAngle + angle).
-    SetOneFlapAngle(flapFR, defaultDeployAngle + angle).
-    SetOneFlapAngle(flapRL, defaultDeployAngle - angle).
-    SetOneFlapAngle(flapRR, defaultDeployAngle - angle).
+    parameter pitchTorque, rollTorque.
+    SetOneFlapAngle(flapFL, defaultDeployAngle + ClampFlapsAngle(TorqueToAngle(pitchTorque - rollTorque))).
+    SetOneFlapAngle(flapFR, defaultDeployAngle + ClampFlapsAngle(TorqueToAngle(pitchTorque + rollTorque))).
+    SetOneFlapAngle(flapRL, defaultDeployAngle + ClampFlapsAngle(TorqueToAngle(-pitchTorque - rollTorque))).
+    SetOneFlapAngle(flapRR, defaultDeployAngle + ClampFlapsAngle(TorqueToAngle(-pitchTorque + rollTorque))).
 }
 
 

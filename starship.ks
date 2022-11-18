@@ -4,12 +4,16 @@ run once torque_to_angle.
 run once pid.
 run once stats.
 
-local pGain is 0.03.
-local iGain is 0.004.
-local dGain is 0.05625.
+local pitch_pGain is 0.100.
+local pitch_iGain is 0.002.
+local pitch_dGain is 0.1125.
 
-local minQ is 0.006.
-local logFile is "flight_log.txt".
+local roll_pGain is 0.08.
+local roll_iGain is 0.
+local roll_dGain is 0.
+
+local minQ is 0.003.
+local logFile is "roll_log.txt".
 
 list RCS in rcsList.
 
@@ -20,16 +24,19 @@ FlapsFlight().
 function RCSFlight
 {
     clearscreen.
-    SetFlapsAngle(0).
+    lock pitchTorque to 0.
+    lock rollTorque to 0.
+    SetFlapsAngle(pitchTorque, rollTorque).
     rcs on.
     for rcsThruster in rcsList
     {
         set rcsThruster:pitchenabled to true.
         set rcsThruster:yawenabled to true.
-        set rcsThruster:deadband to 0.05.
+        set rcsThruster:deadband to 0.004.
     }
-    set sasmode to "NORMAL".
     sas on.
+    wait 0.
+    set sasmode to "NORMAL".
 
     until ship:q >= minQ
     {
@@ -43,36 +50,41 @@ function FlapsFlight
 {
     clearscreen.
     deletepath(logFile).
-    log "P gain: " + pGain + ";I gain: " + iGain + ";D gain: " + dGain to logFile.
-    setPidValues(pGain, iGain, dGain).
+    log "P gain: " + roll_pGain + ";I gain: " + roll_iGain + ";D gain: " + roll_dGain to logFile.
+    PitchPidInit(pitch_pGain, pitch_iGain, pitch_dGain).
+    RollPidInit(roll_pGain, roll_iGain, roll_dGain).
 
-    for rcsThruster in rcsList
-    {
-        set rcsThruster:pitchenabled to false.
-        set rcsThruster:yawenabled to false.
-        set rcsThruster:deadband to 0.004.
-    }
-    //SAS off.
-    //rcs off.
+    sas off.
+    rcs off.
+    //set SteeringManager:TORQUEEPSILONmin to 0.00001.
+    //set SteeringManager:TORQUEEPSILONmax to 0.00001.
+    //for rcsThruster in rcsList
+    //{
+    //    set rcsThruster:pitchenabled to false.
+    //    set rcsThruster:yawenabled to false.
+    //    set rcsThruster:deadband to 0.001.
+    //}
+    //lock steering to lookDirUp(ship:facing:vector, ship:up:vector).
 
     lock airVelocity to ship:velocity:surface.
     lock pitchError to vang(airVelocity, ship:facing:forevector) - 90.
+    lock rollError to vang(airVelocity, ship:facing:starvector) - 90.
 
     // The stronger the dynamic pressure the smaller the flap movement
     lock drag to max(1, GetShipDrag() * 42).
 
-    lock torque to PIDUpdate(pitchError).
-    lock flapsAngle to ClampFlapsAngle(TorqueToAngle(torque / drag)).
+    lock pitchTorque to PitchPidUpdate(pitchError) / drag.
+    lock rollTorque to RollPidUpdate(rollError) / drag.
+    //lock flapsAngle to ClampFlapsAngle(TorqueToAngle(pitchTorque / drag)).
 
     until false
     {
-        SetFlapsAngle(flapsAngle).
+        SetFlapsAngle(pitchTorque, rollTorque).
 
         print "Pitch error: " + pitchError at (0, 13).
-        print "Torque: " + torque at (0, 14).
-        print "Drag: " + drag at (0, 16).
+        print "Roll error: " + rollError at (0, 16).
 
-        log pitchError + ";" + PidOutput[0] + ";" + PidOutput[1] + ";" + PidOutput[2] + ";" + Period(pitchError) to logFile.
+        log rollError + ";" + PidOutput[0] + ";" + PidOutput[1] + ";" + PidOutput[2] + ";" + Period(rollError) to logFile.
 
         wait 0.
     }

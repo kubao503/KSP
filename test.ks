@@ -1,15 +1,15 @@
 clearscreen.
-run once flaps.
-
-local moduleName is "ModuleAeroSurface".
-local mainBreak is ship:partstagged("main_break")[0]:getmodule(moduleName).
-local fullBreak is ship:partstagged("full_break")[0]:getmodule(moduleName).
-local halfBreak is ship:partstagged("half_break")[0]:getmodule(moduleName).
-
-local fieldName is "drag".
-lock mainDrag to mainBreak:getfield(fieldName).
-lock fullDrag to fullBreak:getfield(fieldName).
-lock halfDrag to halfBreak:getfield(fieldName).
+//run once flaps.
+//
+//local moduleName is "ModuleAeroSurface".
+//local mainBreak is ship:partstagged("main_break")[0]:getmodule(moduleName).
+//local fullBreak is ship:partstagged("full_break")[0]:getmodule(moduleName).
+//local halfBreak is ship:partstagged("half_break")[0]:getmodule(moduleName).
+//
+//local fieldName is "drag".
+//lock mainDrag to mainBreak:getfield(fieldName).
+//lock fullDrag to fullBreak:getfield(fieldName).
+//lock halfDrag to halfBreak:getfield(fieldName).
 
 //log "Angle;Main;Full;Half" to starship_log.txt.
 
@@ -19,11 +19,21 @@ lock halfDrag to halfBreak:getfield(fieldName).
 //    wait 0.2.
 //    log angle + ";" + mainDrag + ";" + fullDrag + ";" + halfDrag to starship_log.txt.
 //}
+list rcs in rcsList.
+rcs on.
+for rcsThruster in rcsList
+{
+    set rcsThruster:pitchenabled to true.
+    set rcsThruster:yawenabled to true.
+    set rcsThruster:deadband to 0.004.
+}
+lock steering to lookDirUp(ship:facing:vector, ship:up:vector).
 lock atmP to 2.718^((0-altitude)/5000).
-deletepath("flight_log.txt").
-log "mainDrag;halfDrag;fullDrag;altitude;ship:airspeed;ship:q" to fligt_log.txt.
+local log_name is "test_log.txt".
+deletepath(log_name).
+log "mainDrag;halfDrag;fullDrag;altitude;ship:airspeed;ship:q" to log_name.
 until false
 {
-    log mainDrag + ";" + halfDrag + ";" + fullDrag + ";" + altitude + ";" + ship:airspeed + ";" + ship:q to fligt_log.txt.
+    //log mainDrag + ";" + halfDrag + ";" + fullDrag + ";" + altitude + ";" + ship:airspeed + ";" + ship:q to log_name.
     wait 0.
 }

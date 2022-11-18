@@ -1,0 +1,1 @@
+mainDrag;halfDrag;fullDrag;altitude;ship:airspeed;ship:q
