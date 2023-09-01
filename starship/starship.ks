@@ -8,9 +8,9 @@ local pitch_pGain is 0.100.
 local pitch_iGain is 0.002.
 local pitch_dGain is 0.1125.
 
-local roll_pGain is 0.08.
-local roll_iGain is 0.
-local roll_dGain is 0.
+local roll_pGain is 0.04.
+local roll_iGain is 0.0020625.
+local roll_dGain is 0.07425.
 
 local minQ is 0.003.
 local logFile is "roll_log.txt".
