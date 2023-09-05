@@ -8,6 +8,9 @@ clearscreen. clearvecdraws(). clearguis().                                      
 
 set config:ipu to 2000.                                                             // Set a CPU value
 
+local thrott is 0.
+lock throttle to thrott.
+
 // LIBRARY
 runpath("Library/atmoData/getAtmoData.ks").                                         // Atmospheric Data and Telemetry
 runpath("Library/ODE.ks").                                                          // Ordinary Differential Equation Solvers
@@ -62,9 +65,6 @@ function CCAT {
         set heightAGL to heightMSL-terrainHeight-vesselHeight.                                      // With terrainheight, height above terrain can be determined
     }
 
-    local debugVecEnd is V(0,0,0).
-    local debugVec is vecDraw(V(0,0,0), { return debugVecEnd. }, rgb(1,1,0), "", 2, True).
-
     function getAcceleration {
         // PRIVATE getAcceleration :: list : float -> list
         // Returns the acceleration vector with magnitude in m/s^2 - used as the derivative function in the ODE solver
@@ -95,7 +95,8 @@ function CCAT {
             set totalDrag to (((dragCubeCdA*reynoldsCorrection)+otherCdA)*posQ)/vesselMass.         // Acceleration in m/s^2 from drag
 
             set dragVec to -srfVelVec:normalized * totalDrag.                                            // Drag vector
-            set thrustVec to -srfVelVec:normalized * ship:maxThrust * 0.01.
+            set thrustVec to -srfVelVec:normalized * ship:maxThrust / ship:mass * 0.
+            print "Thrust acceleration: " + thrustVec:mag at (0, 20).
         }
         local accelerationVec is gravityVec+dragVec+thrustVec.
         return list(accelerationVec, orbitalVelVec, positionVec).
@@ -160,7 +161,9 @@ function CCAT {
         set heightMSL to (posVec):mag-bodyRadius.
         getFutureSrfPosVec(elapsedTime).
 
-        set stoppedDescending to abs(measureHeight() - oldMeasureHeight()) < 1.
+        local descendRate is abs(measureHeight() - oldMeasureHeight()).
+        print "Descend rate: " + descendRate at (0, 11).
+        set stoppedDescending to descendRate < 1.
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -182,62 +185,6 @@ function CCAT {
             checkState().
         }
     }
-
-    function orbitalTrajectory {
-        // PRIVATE orbitalTrajectory :: nothing -> nothing
-        // This function uses the orbit struct to determine the future position
-
-        function setAltTarget {
-            // PRIVATE setAltTarget :: float : float -> float
-            parameter       currentAlt,
-                            targetAlt.
-
-            return altTarget + (targetAlt-currentAlt).
-        }
-
-        // Time
-        set sectionLoopTime to timestamp():seconds - sectionStartTime.
-        set loopCounter to loopCounter + 1.
-        // Results
-        local nextOrbit is altitudeToOrbit(altTarget, curObt:position-body:position, curObt:velocity:orbit, bodyName, timestamp():seconds).
-        // New Position
-        set heightMSL to nextOrbit["Height MSL"].
-
-        if hasATM {
-            if (heightMSL < atmHeight) and (heightMSL > (atmHeight - heightError)) {
-                set posVec to nextOrbit["Position"]-bodyName:position.
-                getFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
-                set sectionComplete to True.
-            } else {
-                set altTarget to setAltTarget(heightMSL, atmHeight - (heightError/2)).
-            }
-        }
-        else {
-            set posVec to nextOrbit["Position"]-bodyName:position.
-            getFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
-            if (heightAGL < heightError) and (heightAGL > - heightError) {
-                set sectionComplete to True.
-            } else {
-                set altTarget to setAltTarget(heightAGL, 0).
-            }
-        }
-
-        if loopCounter > 100 set sectionComplete to True.               // Prevents the function from getting stuck
-
-        if sectionComplete {
-            set posVec to nextOrbit["Position"]-bodyName:position.
-            set obtVelVec to nextOrbit["Orbital Velocity Vector"].
-            set srfVelVec to nextOrbit["Surface Velocity Vector"].
-            set elapsedTime to elapsedTime + nextOrbit["Time"] - sectionLoopTime.
-            set curTime to timestamp():seconds + elapsedTime.
-            set curObt to nextOrbit["Next Orbit"].
-            set dt to masterManager["targetDT"].
-            set srfVel to srfVelVec:mag.
-            set sectionComplete to False.
-            checkState().
-        }
-    }
-
 
     // Body and Constants
     local bodyRadius is bodyName:radius.                                                            // The radius of the current celestial body in meters
@@ -263,7 +210,6 @@ function CCAT {
     local srfVelVec is ship:velocity:surface.                                                       // The current surface velocity vector or TAS (True Airspeed) vector
     local obtVelVec is ship:velocity:orbit.                                                         // The current orbital velocity vector
     local tanVelVec is vcrs(bodyAngVel, ship:position-body:position).                               // Tangent velocity vector with body rotation
-    local curObt is orbitFromVector().                                                              // The current orbit in an Orbit Struct format
 
     // Scalars
     local lngShift is 0.                                                                            // Longitude shift in degrees per second
@@ -308,20 +254,12 @@ function CCAT {
         } else {
             set inATM to False.
             set inOBT to True.
-            set masterFunctionManager["Trajectory"] to orbitalTrajectory@.
-            set curObt to orbitFromVector(posVec, obtVelVec, bodyName, curTime).
             set sectionStartTime to timeStamp():seconds.
         }
         // If body has atmosphere
         if hasATM {
             updateAtmosphere(elapsedTime, heightMSL, srfVel, 0).                                    // Updating Temp for Latitude and Time
             if inOBT set altTarget to atmHeight - (heightError / 2).                                // New altitude target just below the atm top
-        }
-        // If orbit is hyperbolic
-        if (curObt:apoapsis < 0) and (curObt:eccentricity >= 1) {
-            set masterFunctionManager["Trajectory"] to {iterationTrajectory({return heightMSL.}, {return oldHeightMSL.}).}.
-            set altTarget to atmHeight - heightError.
-            set endInObt to False.
         }
         // Utility functions to loop over
         if masterManager["UseGUI"] set masterFunctionManager["GUI"] to manageGUIS@.
@@ -375,7 +313,6 @@ function CCAT {
         set srfVelVec to ship:velocity:surface.
         set obtVelVec to ship:velocity:orbit.
         set tanVelVec to vcrs(bodyAngVel, ship:position-body:position).
-        set curObt to orbitFromVector().
         // Scalars
         set lngShift to 0.
         set heightMSL to max(posVec:mag-bodyRadius,0).
@@ -521,6 +458,10 @@ function CCAT {
         set TTI to TTIU - timestamp():seconds.
         set TTIM to secondsToClock(missionTime + elapsedTime).
 
+        local burnTime is finalSrfVelVec:mag * ship:mass / ship:maxthrust.
+        print "Burn time: " + burnTime at (0, 13).
+        set burnStartTime to TTIU - burnTime.
+
         updateVariables().
         updateImpactVariables().
     }
@@ -533,6 +474,7 @@ function CCAT {
     local finalHeightAGL is heightAGL.                                                              // Last recorded Height
     local heightErrorTotal is 0.                                                                    // Distance between last recorded impact position and current
     local heightErrorRate is 0.                                                                     // Rate of the impact error change
+    local burnStartTime is 0.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////// This section is used mainly for the GUI to display real time information
@@ -671,6 +613,16 @@ function CCAT {
         // Call this function to perform continuous iterations
         until masterManager["masterSwitch"] {
             for FX in masterFunctionManager:values FX().
+
+            local timeToBurn is burnStartTime - TimeStamp():seconds.
+            print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
+            print "Time to burn: " + timeToBurn at(0, 15).
+            if timeToBurn <= 0 and burnStartTime <> 0 {
+                set thrott to 1.
+            }
+            else {
+                set thrott to 0.
+            }
         }
     }
 
@@ -716,7 +668,7 @@ local CCATFX is CCAT(
     False,          // endInObt
     False,          // exactAtmo
     False,          // useGUI
-    True,           // vectorVis
+    False,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
     ship:name,      // profileName
