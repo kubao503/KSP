@@ -93,9 +93,13 @@ function CCAT {
             set dragCubeCdA to interpolatorFunction(key0[0], key1[0], dragProfileMN).               // Interpolation of dragcube CdA
             set otherCdA to interpolatorFunction(key0[1], key1[1], dragProfileMN).                  // Interpolation of other CdA's
             set totalDrag to (((dragCubeCdA*reynoldsCorrection)+otherCdA)*posQ)/vesselMass.         // Acceleration in m/s^2 from drag
-
             set dragVec to -srfVelVec:normalized * totalDrag.                                            // Drag vector
-            set thrustVec to -srfVelVec:normalized * ship:maxThrust / ship:mass * 0.
+
+            if burnStartTimeSet and curTime >= burnStartTime {
+                set thrustVec to -srfVelVec:normalized * ship:maxThrust / ship:mass.
+            } else {
+                set burnStartVel to srfVelVec:mag.
+            }
             print "Thrust acceleration: " + thrustVec:mag at (0, 20).
         }
         local accelerationVec is gravityVec+dragVec+thrustVec.
@@ -163,7 +167,13 @@ function CCAT {
 
         local descendRate is abs(measureHeight() - oldMeasureHeight()).
         print "Descend rate: " + descendRate at (0, 11).
-        set stoppedDescending to descendRate < 1.
+        set stoppedMidAir to descendRate < 1.
+        if stoppedMidAir {
+            print "Stopped" at (0, 9).
+        }
+        else {
+            print "       " at (0, 9).
+        }
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -179,7 +189,7 @@ function CCAT {
             }
         }
 
-        if sectionComplete or stoppedDescending {
+        if sectionComplete or stoppedMidAir {
             nextIteration().
             set ODEuseError to masterManager["useError"].
             checkState().
@@ -238,7 +248,7 @@ function CCAT {
         set loopCounter to 0.
         set sectionComplete to False.
         // IMPACT
-        if heightAGL < heightError or stoppedDescending
+        if heightAGL < heightError or stoppedMidAir
                 or ((heightMSL > atmHeight) and endInObt) {
             simulationComplete().
             resetParameters().
@@ -339,7 +349,7 @@ function CCAT {
     local elapsedTime is 0.                                                                         // Elapsed actual time since the beginning of the simulation or ∑ΔT
     local loopCounter is 0.                                                                         // Counts the amount of iterations and is used for some conditions
     local sectionComplete is False.                                                                 // Bool that determines if the simulation is finished
-    local stoppedDescending is False.
+    local stoppedMidAir is False.
     local latency is 0.                                                                             // Time it takes per iteration
     local oldTime is kscUniversalTime.                                                              // Previous time used for latency calculation
 
@@ -459,8 +469,18 @@ function CCAT {
         set TTIM to secondsToClock(missionTime + elapsedTime).
 
         local burnTime is finalSrfVelVec:mag * ship:mass / ship:maxthrust.
+        print "Final velocity: " + finalSrfVelVec:mag at (0, 8).
         print "Burn time: " + burnTime at (0, 13).
-        set burnStartTime to TTIU - burnTime.
+
+        if not burnStartTimeSet {
+            set burnStartTime to TTIU - burnTime.
+            set burnStartTimeSet to True.
+        } else if stoppedMidAir {
+            local burnDelay is finalHeightAGL / burnStartVel.
+            set burnStartTime to burnStartTime + burnDelay.
+        } else {
+            set burnStartTime to burnStartTime - burnTime.
+        }
 
         updateVariables().
         updateImpactVariables().
@@ -475,6 +495,8 @@ function CCAT {
     local heightErrorTotal is 0.                                                                    // Distance between last recorded impact position and current
     local heightErrorRate is 0.                                                                     // Rate of the impact error change
     local burnStartTime is 0.
+    local burnStartTimeSet is False.
+    local burnStartVel is 0.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////// This section is used mainly for the GUI to display real time information
@@ -617,7 +639,7 @@ function CCAT {
             local timeToBurn is burnStartTime - TimeStamp():seconds.
             print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
             print "Time to burn: " + timeToBurn at(0, 15).
-            if timeToBurn <= 0 and burnStartTime <> 0 {
+            if timeToBurn <= 0 and burnStartTimeSet {
                 set thrott to 1.
             }
             else {
@@ -668,7 +690,7 @@ local CCATFX is CCAT(
     False,          // endInObt
     False,          // exactAtmo
     False,          // useGUI
-    False,           // vectorVis
+    True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
     ship:name,      // profileName
