@@ -53,7 +53,7 @@ function CCAT {
         return gravAccel.
     }
 
-    function getFutureSrfPosVec {
+    function updateFutureSrfPosVec {
         // PRIVATE getFutureSrfPosVec :: nothing -> nothing
         // Updates geoposition, terrainheight and heightAGL as a function of time
         parameter       timeParam is elapsedTime.
@@ -102,7 +102,6 @@ function CCAT {
             } else {
                 set burnStartVel to srfVelVec:mag.
             }
-            print "Thrust acceleration: " + totalThrust at (0, 20).
         }
         local dragStakeRatio is totalDrag / (totalDrag + totalThrust + getGravity(altitude)).
         if dragStakeRatio < terminalDragStakeRatio print "Simple sim " + dragStakeRatio at (0, 21).
@@ -168,7 +167,7 @@ function CCAT {
         // New Position and Height
         set posVec to ODEresults[1]:vec.
         set heightMSL to (posVec):mag-bodyRadius.
-        getFutureSrfPosVec(elapsedTime).
+        updateFutureSrfPosVec(elapsedTime).
 
         local descendRate is (measureHeight() - oldMeasureHeight()) / dt.
         set stoppedMidAir to descendRate >= -0.05.
@@ -504,6 +503,7 @@ function CCAT {
     local heightErrorRate is 0.                                                                     // Rate of the impact error change
     local burnStartTime is 0.
     local burnStartTimeSet is False.
+    local burnStarted is False.
     local burnStartVel is 0.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -632,6 +632,19 @@ function CCAT {
 
     checkState().
 
+    local shipComHeight is 20.17.
+
+    function getHeightAboveGround {
+        return (altitude-geoposition:terrainheight) - shipComHeight.
+    }
+
+    function getTargetThrottle {
+        local height is getHeightAboveGround().
+        print "Height: " + height at (0, 30).
+        local targetThrust is (ship:verticalSpeed^2 / 2 / height + getGravity(height)) * ship:mass.
+        return targetThrust / ship:maxThrust.
+    }
+
     function singleIteration {
         // PUBLIC Iterate :: nothing -> nothing
         // Call this function to perform one iteration
@@ -641,19 +654,22 @@ function CCAT {
     function continuousIteration {
         // PUBLIC Iterate :: nothing -> nothing
         // Call this function to perform continuous iterations
-        until masterManager["masterSwitch"] {
+        until burnStarted {
             for FX in masterFunctionManager:values FX().
 
             local timeToBurn is burnStartTime - TimeStamp():seconds.
             print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
             print "Time to burn: " + timeToBurn at(0, 15).
             if timeToBurn <= 0 and burnStartTimeSet {
-                set thrott to 1.
-            }
-            else {
-                set thrott to 0.
+                set burnStarted to True.
             }
         }
+        set thrott to 1.
+        until getHeightAboveGround() < 0.02 {
+            set thrott to getTargetThrottle().
+            print "Throttle: " + thrott at (0, 31).
+        }
+        set thrott to 0.
     }
 
     function restartSimulation {
@@ -679,15 +695,21 @@ function CCAT {
         ).
     }
 
+    function showTargetThrottle {
+        until False {
+            print "Throttle: " + getTargetThrottle() at (0, 31).
+        }
+    }
+
     return lexicon(
         "singleIteration", singleIteration@,
         "continuousIteration", continuousIteration@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
-        "getFinalPosition", getFinalPosition@
+        "getFinalPosition", getFinalPosition@,
+        "showTargetThrottle", showTargetThrottle@
     ).
 }
-
 
 local CCATFX is CCAT(
     "RKDP54",       // solver
