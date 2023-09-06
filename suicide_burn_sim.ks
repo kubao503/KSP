@@ -103,9 +103,6 @@ function CCAT {
                 set burnStartVel to srfVelVec:mag.
             }
         }
-        local dragStakeRatio is totalDrag / (totalDrag + totalThrust + getGravity(altitude)).
-        if dragStakeRatio < terminalDragStakeRatio print "Simple sim " + dragStakeRatio at (0, 21).
-
         local accelerationVec is gravityVec+dragVec+thrustVec.
         return list(accelerationVec, orbitalVelVec, positionVec).
     }
@@ -204,7 +201,6 @@ function CCAT {
     local sgc is (constant:idealgas/molarmass).                                                     // Specific gas constant
     local vesselHeight is ship:bounds:extents:mag*0.9.                                              // Distance from the vessel COM to the furthest corner used to determine an accurate Height above terrain
     local vesselMass is ship:mass*1000.                                                             // Weight of the vessel in kg
-    local terminalDragStakeRatio is 0.03.
 
     // Vectors and Geoposition
     local bodyPosition is bodyName:position.                                                        // Recorded body position at the start of the simulation
@@ -641,14 +637,8 @@ function CCAT {
     function getTargetThrottle {
         local height is getHeightAboveGround().
         print "Height: " + height at (0, 30).
-        local targetThrust is (ship:verticalSpeed^2 / 2 / height + getGravity(height)) * ship:mass.
+        local targetThrust is (ship:airspeed^2 / 2 / height + getGravity(height)) * ship:mass.
         return targetThrust / ship:maxThrust.
-    }
-
-    function singleIteration {
-        // PUBLIC Iterate :: nothing -> nothing
-        // Call this function to perform one iteration
-        for FX in masterFunctionManager:values FX().
     }
 
     function continuousIteration {
@@ -665,7 +655,7 @@ function CCAT {
             }
         }
         set thrott to 1.
-        until getHeightAboveGround() < 0.02 {
+        until ship:status = "LANDED" {
             set thrott to getTargetThrottle().
             print "Throttle: " + thrott at (0, 31).
         }
@@ -702,7 +692,6 @@ function CCAT {
     }
 
     return lexicon(
-        "singleIteration", singleIteration@,
         "continuousIteration", continuousIteration@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
