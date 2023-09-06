@@ -76,6 +76,7 @@ function CCAT {
         local altitude is max(positionVec:mag-bodyRadius,0).
         local gravityVec is -positionVec:normalized * getGravity(altitude).
         local dragVec is V(0,0,0).
+        local totalThrust is 0.
         local thrustVec is V(0,0,0).
         if altitude < atmHeight {
             set tanVelVec to vcrs(bodyAngVel, positionVec).                                                  // Tangent velocity vector use for orb-srf vec translation
@@ -96,12 +97,16 @@ function CCAT {
             set dragVec to -srfVelVec:normalized * totalDrag.                                            // Drag vector
 
             if burnStartTimeSet and curTime >= burnStartTime {
-                set thrustVec to -srfVelVec:normalized * ship:maxThrust / ship:mass.
+                set totalThrust to ship:maxThrust / ship:mass.
+                set thrustVec to -srfVelVec:normalized * totalThrust.
             } else {
                 set burnStartVel to srfVelVec:mag.
             }
-            print "Thrust acceleration: " + thrustVec:mag at (0, 20).
+            print "Thrust acceleration: " + totalThrust at (0, 20).
         }
+        local dragStakeRatio is totalDrag / (totalDrag + totalThrust + getGravity(altitude)).
+        if dragStakeRatio < terminalDragStakeRatio print "Simple sim " + dragStakeRatio at (0, 21).
+
         local accelerationVec is gravityVec+dragVec+thrustVec.
         return list(accelerationVec, orbitalVelVec, positionVec).
     }
@@ -165,15 +170,8 @@ function CCAT {
         set heightMSL to (posVec):mag-bodyRadius.
         getFutureSrfPosVec(elapsedTime).
 
-        local descendRate is abs(measureHeight() - oldMeasureHeight()).
-        print "Descend rate: " + descendRate at (0, 11).
-        set stoppedMidAir to descendRate < 1.
-        if stoppedMidAir {
-            print "Stopped" at (0, 9).
-        }
-        else {
-            print "       " at (0, 9).
-        }
+        local descendRate is (measureHeight() - oldMeasureHeight()) / dt.
+        set stoppedMidAir to descendRate >= -0.05.
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -207,6 +205,7 @@ function CCAT {
     local sgc is (constant:idealgas/molarmass).                                                     // Specific gas constant
     local vesselHeight is ship:bounds:extents:mag*0.9.                                              // Distance from the vessel COM to the furthest corner used to determine an accurate Height above terrain
     local vesselMass is ship:mass*1000.                                                             // Weight of the vessel in kg
+    local terminalDragStakeRatio is 0.03.
 
     // Vectors and Geoposition
     local bodyPosition is bodyName:position.                                                        // Recorded body position at the start of the simulation
@@ -468,17 +467,26 @@ function CCAT {
         set TTI to TTIU - timestamp():seconds.
         set TTIM to secondsToClock(missionTime + elapsedTime).
 
-        local burnTime is finalSrfVelVec:mag * ship:mass / ship:maxthrust.
-        print "Final velocity: " + finalSrfVelVec:mag at (0, 8).
-        print "Burn time: " + burnTime at (0, 13).
+        local maxAcceleration is ship:maxthrust / ship:mass - getGravity(heightMSL).
 
         if not burnStartTimeSet {
+            local burnTime is finalSrfVelVec:mag / maxAcceleration.
+            print "Burn time: " + burnTime at (0, 13).
             set burnStartTime to TTIU - burnTime.
             set burnStartTimeSet to True.
         } else if stoppedMidAir {
             local burnDelay is finalHeightAGL / burnStartVel.
+            print "STOPPED" at (0, 5).
+            print "Height: " + finalHeightAGL at (0, 6).
+            print "                                           " at (0, 7).
+            print "Burn delay: " + burnDelay at (0, 8).
             set burnStartTime to burnStartTime + burnDelay.
         } else {
+            local burnTime is finalSrfVelVec:mag^2 / 2 / burnStartVel / maxAcceleration.
+            print "IMPACT " at (0, 5).
+            print "                                           " at (0, 6).
+            print "Velocity: " + finalSrfvelVec:mag at (0, 7).
+            print "Burn time: " + burnTime at (0, 8).
             set burnStartTime to burnStartTime - burnTime.
         }
 
@@ -690,7 +698,7 @@ local CCATFX is CCAT(
     False,          // endInObt
     False,          // exactAtmo
     False,          // useGUI
-    True,           // vectorVis
+    False,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
     ship:name,      // profileName
