@@ -8,21 +8,19 @@ clearscreen. clearvecdraws(). clearguis().                                      
 
 set config:ipu to 2000.                                                             // Set a CPU value
 
-local thrott is 0.
-lock throttle to thrott.
-
 // LIBRARY
 runpath("Library/atmoData/getAtmoData.ks").                                         // Atmospheric Data and Telemetry
 runpath("Library/ODE.ks").                                                          // Ordinary Differential Equation Solvers
 runpath("Library/Interpolation.ks").                                                // Interpolation Functions
 runpath("Library/Orbit.ks").                                                        // Orbital Functions
+runpath("Library/Physics.ks").
 runpath("CCAT/DragProfile/LIB/Profile.ks").                                         // Drag Profile function required for reynolds correction
 
 //////////////////////////////////////////
 // MAIN FUNCTION                       	//
 //////////////////////////////////////////
 
-function CCAT {
+function landingSim {
     // CLASS CCAT
     parameter       solver is "RKDP54",
                     targetDT is 1,
@@ -42,16 +40,6 @@ function CCAT {
     //////////////////// This section calculates the future position
     // TRAJECTORIES   // For orbital trajectories, the future position is resolved analytically
     //////////////////// For atmospheric trajectories, the future position is calculated by integration using the ODE solver
-
-    function getGravity {
-        // PRIVATE getGravity :: float -> float
-        // Returns gravitational acceleration in m/s^2 in relation to altitude above MSL
-        // NOTE -> Parameter s0 is ALTITUDE, not radius
-        parameter       s0.
-
-        set gravAccel to bodyMu/(s0+bodyRadius)^2.
-        return gravAccel.
-    }
 
     function updateFutureSrfPosVec {
         // PRIVATE getFutureSrfPosVec :: nothing -> nothing
@@ -499,7 +487,6 @@ function CCAT {
     local heightErrorRate is 0.                                                                     // Rate of the impact error change
     local burnStartTime is 0.
     local burnStartTimeSet is False.
-    local burnStarted is False.
     local burnStartVel is 0.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -624,41 +611,8 @@ function CCAT {
 
     checkState().
 
-    local shipComHeight is 20.17.
-    local gearExtendTime is 7.
-
-    function getHeightAboveGround {
-        return (altitude-geoposition:terrainheight) - shipComHeight.
-    }
-
-    function getTargetThrottle {
-        local height is getHeightAboveGround().
-        print "Height: " + height at (0, 30).
-        local targetThrust is (ship:airspeed^2 / 2 / height + getGravity(height)) * ship:mass.
-        return targetThrust / ship:maxThrust.
-    }
-
-    function continuousIteration {
-        // PUBLIC Iterate :: nothing -> nothing
-        // Call this function to perform continuous iterations
-        when burnStartTimeSet and TimeStamp():seconds >= TTIU - gearExtendTime then gear on.
-
-        until burnStarted {
-            for FX in masterFunctionManager:values FX().
-
-            local timeToBurn is burnStartTime - TimeStamp():seconds.
-            print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
-            print "Time to burn: " + timeToBurn at(0, 15).
-            if timeToBurn <= 0 and burnStartTimeSet {
-                set burnStarted to True.
-            }
-        }
-        set thrott to 1.
-        until ship:status = "LANDED" {
-            set thrott to getTargetThrottle().
-            print "Throttle: " + thrott at (0, 31).
-        }
-        set thrott to 0.
+    function singleIteration {
+        for FX in masterFunctionManager:values FX().
     }
 
     function restartSimulation {
@@ -668,9 +622,7 @@ function CCAT {
         checkState().
     }
 
-    function getFinalPosition {
-        // PUBLIC getFinalPosition :: nothing -> lexicon
-        // Call this function to return a lexicon with final position information
+    function getResults {
         return lexicon(
             "Surface Velocity Vector", finalSrfVelVec,
             "Orbit Velocity Vector", finalObtVelVec,
@@ -680,26 +632,21 @@ function CCAT {
             "Height AGL", finalHeightAGL,
             "Time to Impact", TTI,
             "Time of Impact", TTIU,
-            "Mission Time of Impact", TTIM
+            "Mission Time of Impact", TTIM,
+            "Burn start time", burnStartTime,
+            "Burn start time set", burnStartTimeSet
         ).
     }
 
-    function showTargetThrottle {
-        until False {
-            print "Throttle: " + getTargetThrottle() at (0, 31).
-        }
-    }
-
     return lexicon(
-        "continuousIteration", continuousIteration@,
+        "singleIteration", singleIteration@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
-        "getFinalPosition", getFinalPosition@,
-        "showTargetThrottle", showTargetThrottle@
+        "getResults", getResults@
     ).
 }
 
-local CCATFX is CCAT(
+global landingSimFX is landingSim(
     "RKDP54",       // solver
     1,              // targetDT
     False,          // runOnce
@@ -714,5 +661,3 @@ local CCATFX is CCAT(
     ship:name,      // profileName
     ship:body       // bodyName
 ).
-
-CCATFX["continuousIteration"]().
