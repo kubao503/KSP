@@ -581,8 +581,6 @@ function CCAT {
         set vdrawLexicon[0]:vec to upVector*250.
         set vdrawLexicon[1]:start to (srfPosVec + bodyPosition).
         set vdrawLexicon[1]:vec to srfVelVec*10.
-        set vdrawLexicon[2]:start to (posVec + bodyPosition).
-        set vdrawLexicon[2]:vec to obtVelVec.
     }
 
     local vdrawLexicon is lexicon().
@@ -590,8 +588,6 @@ function CCAT {
     set vdrawLexicon[0] to vecdraw1.
     local vecdraw2 is vecdraw(V(0,0,0), up:vector*100, RGB(0,1,0), "Surface Position Vector", 1, vectorVis, 0.2, true, true).
     set vdrawLexicon[1] to vecdraw2.
-    local vecdraw3 is vecdraw(V(0,0,0), up:vector*100, RGB(0,0,1), "Orbit Position Vector", 1, vectorVis, 0.2, true, true).
-    set vdrawLexicon[2] to vecdraw3.
     if vectorVis {
         for vd in range(vdrawLexicon:values:length) set vdrawLexicon[vd]:SHOW to True.
         set masterFunctionManager["Vecdraw"] to manageVecDraws@.
@@ -629,6 +625,7 @@ function CCAT {
     checkState().
 
     local shipComHeight is 20.17.
+    local gearExtendTime is 7.
 
     function getHeightAboveGround {
         return (altitude-geoposition:terrainheight) - shipComHeight.
@@ -644,6 +641,8 @@ function CCAT {
     function continuousIteration {
         // PUBLIC Iterate :: nothing -> nothing
         // Call this function to perform continuous iterations
+        when burnStartTimeSet and TimeStamp():seconds >= TTIU - gearExtendTime then gear on.
+
         until burnStarted {
             for FX in masterFunctionManager:values FX().
 
@@ -709,7 +708,7 @@ local CCATFX is CCAT(
     False,          // endInObt
     False,          // exactAtmo
     False,          // useGUI
-    False,           // vectorVis
+    True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
     ship:name,      // profileName
