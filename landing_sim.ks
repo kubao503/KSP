@@ -42,7 +42,7 @@ function landingSim {
     //////////////////// For atmospheric trajectories, the future position is calculated by integration using the ODE solver
 
     function updateFutureSrfPosVec {
-        // PRIVATE getFutureSrfPosVec :: nothing -> nothing
+        // PRIVATE updateFutureSrfPosVec  :: nothing -> nothing
         // Updates geoposition, terrainheight and heightAGL as a function of time
         parameter       timeParam is elapsedTime.
 
@@ -208,7 +208,7 @@ function landingSim {
         if hasATM {
             if (heightMSL < atmHeight) and (heightMSL > (atmHeight - heightError)) {
                 set posVec to nextOrbit["Position"]-bodyName:position.
-                getFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
+                updateFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
                 set sectionComplete to True.
             } else {
                 set altTarget to setAltTarget(heightMSL, atmHeight - (heightError/2)).
@@ -216,7 +216,7 @@ function landingSim {
         }
         else {
             set posVec to nextOrbit["Position"]-bodyName:position.
-            getFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
+            updateFutureSrfPosVec(elapsedTime + nextOrbit["Time"] - sectionLoopTime).
             if (heightAGL < heightError) and (heightAGL > - heightError) {
                 set sectionComplete to True.
             } else {
@@ -451,6 +451,7 @@ function landingSim {
     ).
     local masterFunctionManager is lexicon().                                                       // All functions in this lexicon will be executed by the main loop
     local utilityFX is lexicon().
+    set utilityFX["additionalImpactCondition"] to { return False. }.
     set masterFunctionManager["Latency"] to {                                                       // Used to check the latency or calculation time of the loop
         set latency to timestamp():seconds - oldTime.
         set oldTime to timestamp():seconds.}.
@@ -496,7 +497,7 @@ function landingSim {
                         updateATMInterval is updateInterval.
 
         if updateATMHeightMSL < atmHeight {
-            if exactAtmo getFutureSrfPosVec(updateATMTime).
+            if exactAtmo updateFutureSrfPosVec(updateATMTime).
             set posSAT to getSAT(min(updateATMHeightMSL, atmHeight-1),                                  // Static Air Temperature obtained from interpolation #1
                 posGeo, updateATMTime, updateATMInterval).                                              // #2
             set posPRES to bodyName:atm:altitudepressure(min(updateATMHeightMSL,                        // Pressure in pa from the altitudepressure method #1
@@ -747,7 +748,7 @@ global landingSimFX is landingSim(
     1,              // targetError
     False,          // endInObt
     False,          // exactAtmo
-    False,          // useGUI
+    True,          // useGUI
     True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
