@@ -22,7 +22,7 @@ function land {
 
     function waitForBurn {
         until False {
-            landingSimFX["singleIteration"]().
+            landingSimFX["landing"]().
             unpackResults().
 
             local timeToBurn is burnStartTime - TimeStamp():seconds.

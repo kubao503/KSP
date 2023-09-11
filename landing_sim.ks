@@ -53,6 +53,18 @@ function landingSim {
         set heightAGL to heightMSL-terrainHeight-vesselHeight.                                      // With terrainheight, height above terrain can be determined
     }
 
+    function isBurnActive {
+        return burnStartTimeSet and curTime >= burnStartTime.
+    }
+
+    function getThrustVec {
+        if isBurnActive {
+            local totalThrust is ship:maxThrust / ship:mass.
+            return -srfVelVec:normalized * totalThrust.
+        }
+        return v(0,0,0).
+    }
+
     function getAcceleration {
         // PRIVATE getAcceleration :: list : float -> list
         // Returns the acceleration vector with magnitude in m/s^2 - used as the derivative function in the ODE solver
@@ -64,7 +76,6 @@ function landingSim {
         local altitude is max(positionVec:mag-bodyRadius,0).
         local gravityVec is -positionVec:normalized * getGravity(altitude).
         local dragVec is V(0,0,0).
-        local thrustVec is V(0,0,0).
         if altitude < atmHeight {
             set tanVelVec to vcrs(bodyAngVel, positionVec).                                                  // Tangent velocity vector use for orb-srf vec translation
             set srfVelVec to orbitalVelVec - tanVelVec.                                                       // Surface velocity vector calculated from orbit velocity vector
@@ -82,15 +93,11 @@ function landingSim {
             set otherCdA to interpolatorFunction(key0[1], key1[1], dragProfileMN).                  // Interpolation of other CdA's
             set totalDrag to (((dragCubeCdA*reynoldsCorrection)+otherCdA)*posQ)/vesselMass.         // Acceleration in m/s^2 from drag
             set dragVec to -srfVelVec:normalized * totalDrag.                                            // Drag vector
-
-            if burnStartTimeSet and curTime >= burnStartTime {
-                local totalThrust is ship:maxThrust / ship:mass.
-                set thrustVec to -srfVelVec:normalized * totalThrust.
-            } else {
-                set burnStartVec to srfVelVec.
-            }
         }
-        local accelerationVec is gravityVec+dragVec+thrustVec.
+
+        if not isBurnActive() set burnStartVec to srfVelVec.
+
+        local accelerationVec is gravityVec + dragVec + getThrustVec().
         return list(accelerationVec, orbitalVelVec, positionVec).
     }
 
@@ -151,10 +158,11 @@ function landingSim {
         // New Position and Height
         set posVec to ODEresults[1]:vec.
         set heightMSL to (posVec):mag-bodyRadius.
-        updateFutureSrfPosVec(elapsedTime).
 
         local descendRate is (measureHeight() - oldMeasureHeight()) / dt.
         set stoppedMidAir to descendRate >= -0.05.
+
+        updateFutureSrfPosVec(elapsedTime).
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -170,7 +178,7 @@ function landingSim {
             }
         }
 
-        if sectionComplete or stoppedMidAir {
+        if utilityFX["hasSimulationEnded"]() {
             nextIteration().
             set ODEuseError to masterManager["useError"].
             checkState().
@@ -191,7 +199,7 @@ function landingSim {
 
         // Time
         set sectionLoopTime to timestamp():seconds - sectionStartTime.
-        set loopCounter to loopCounter + 1.  
+        set loopCounter to loopCounter + 1.
         // Results
         local nextOrbit is altitudeToOrbit(altTarget, curObt:position-body:position, curObt:velocity:orbit, bodyName, timestamp():seconds).
         // New Position
@@ -286,10 +294,9 @@ function landingSim {
         set loopCounter to 0.
         set sectionComplete to False.
         // IMPACT
-        if heightAGL < heightError or stoppedMidAir
-                or ((heightMSL > atmHeight) and endInObt) {
-            simulationComplete().
-            resetParameters().
+        if heightAGL < heightError or ((heightMSL > atmHeight) and endInObt)
+                or utilityFX["additionalImpactCondition"]() {
+            utilityFX["impactUpdates"]().
         }
         // CONDITIONAL
         // If in atmosphere
@@ -312,7 +319,7 @@ function landingSim {
             if inOBT set altTarget to atmHeight - (heightError / 2).                                // New altitude target just below the atm top
         }
         // If orbit is hyperbolic
-        if (curObt:apoapsis < 0) and (curObt:eccentricity >= 1) {                                
+        if (curObt:apoapsis < 0) and (curObt:eccentricity >= 1) {
             set masterFunctionManager["Trajectory"] to {iterationTrajectory({return heightMSL.}, {return oldHeightMSL.}).}.
             set altTarget to atmHeight - heightError.
             set endInObt to False.
@@ -324,6 +331,31 @@ function landingSim {
         if masterManager["vectorVis"] set masterFunctionManager["Vecdraw"] to manageVecDraws@.
         else if masterFunctionManager:haskey("Vecdraw") masterFunctionManager:remove("Vecdraw").
 
+    }
+
+    function landingBurnUpdate {
+        local maxAcceleration is ship:maxthrust / ship:mass - getGravity(heightMSL).
+
+        if not burnStartTimeSet {
+            local burnTime is finalSrfVelVec:mag / maxAcceleration.
+            print "Burn time: " + burnTime at (0, 13).
+            set burnStartTime to TTIU - burnTime.
+            set burnStartTimeSet to True.
+        } else if stoppedMidAir {
+            local burnDelay is finalHeightAGL / burnStartVec:mag.
+            print "STOPPED" at (0, 5).
+            print "Height: " + finalHeightAGL at (0, 6).
+            print "                                           " at (0, 7).
+            print "Burn delay: " + burnDelay at (0, 8).
+            set burnStartTime to burnStartTime + burnDelay.
+        } else {
+            local burnTime is finalSrfVelVec:mag^2 / 2 / burnStartVec:mag / maxAcceleration.
+            print "IMPACT " at (0, 5).
+            print "                                           " at (0, 6).
+            print "Velocity: " + finalSrfvelVec:mag at (0, 7).
+            print "Burn time: " + burnTime at (0, 8).
+            set burnStartTime to burnStartTime - burnTime.
+        }
     }
 
     function resetParameters {
@@ -369,7 +401,7 @@ function landingSim {
         set srfVelVec to ship:velocity:surface.
         set obtVelVec to ship:velocity:orbit.
         set tanVelVec to vcrs(bodyAngVel, ship:position-body:position).
-        set curObt to orbitFromVector().                                                                              
+        set curObt to orbitFromVector().
         // Scalars
         set lngShift to 0.
         set heightMSL to max(posVec:mag-bodyRadius,0).
@@ -418,6 +450,7 @@ function landingSim {
         "updateVAR", False
     ).
     local masterFunctionManager is lexicon().                                                       // All functions in this lexicon will be executed by the main loop
+    local utilityFX is lexicon().
     set masterFunctionManager["Latency"] to {                                                       // Used to check the latency or calculation time of the loop
         set latency to timestamp():seconds - oldTime.
         set oldTime to timestamp():seconds.}.
@@ -514,29 +547,6 @@ function landingSim {
         set TTIU to kscUniversalTime + elapsedTime.
         set TTI to TTIU - timestamp():seconds.
         set TTIM to secondsToClock(missionTime + elapsedTime).
-
-        local maxAcceleration is ship:maxthrust / ship:mass - getGravity(heightMSL).
-
-        if not burnStartTimeSet {
-            local burnTime is finalSrfVelVec:mag / maxAcceleration.
-            print "Burn time: " + burnTime at (0, 13).
-            set burnStartTime to TTIU - burnTime.
-            set burnStartTimeSet to True.
-        } else if stoppedMidAir {
-            local burnDelay is finalHeightAGL / burnStartVec:mag.
-            print "STOPPED" at (0, 5).
-            print "Height: " + finalHeightAGL at (0, 6).
-            print "                                           " at (0, 7).
-            print "Burn delay: " + burnDelay at (0, 8).
-            set burnStartTime to burnStartTime + burnDelay.
-        } else {
-            local burnTime is finalSrfVelVec:mag^2 / 2 / burnStartVec:mag / maxAcceleration.
-            print "IMPACT " at (0, 5).
-            print "                                           " at (0, 6).
-            print "Velocity: " + finalSrfvelVec:mag at (0, 7).
-            print "Burn time: " + burnTime at (0, 8).
-            set burnStartTime to burnStartTime - burnTime.
-        }
 
         updateVariables().
         updateImpactVariables().
@@ -676,7 +686,24 @@ function landingSim {
 
     checkState().
 
-    function singleIteration {
+    function landing {
+        set utilityFX["hasSimulationEnded"] to { return sectionComplete or stoppedMidAir. }.
+        set utilityFX["additionalImpactCondition"] to { return stoppedMidAir. }.
+        set utilityFX["impactUpdates"] to {
+            simulationComplete().
+            landingBurnUpdate().
+            resetParameters().
+        }.
+        for FX in masterFunctionManager:values FX().
+    }
+
+    function freeFall {
+        set utilityFX["hasSimulationEnded"] to { return sectionComplete. }.
+        set utilityFX["additionalImpactCondition"] to { return False. }.
+        set utilityFX["impactUpdates"] to {
+            simulationComplete().
+            resetParameters().
+        }.
         for FX in masterFunctionManager:values FX().
     }
 
@@ -704,7 +731,8 @@ function landingSim {
     }
 
     return lexicon(
-        "singleIteration", singleIteration@,
+        "landing", landing@,
+        "freeFall", freeFall@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
         "getResults", getResults@
