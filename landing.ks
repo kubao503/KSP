@@ -6,7 +6,9 @@ runpath("Library/Physics.ks").
 function land {
     local gearExtendTime is 7.
     local continentHeight is 10.
+    local shipComHeight is 20.17.
 
+    local burnStartTime is 0.
     local burnStartTimeSet is False.
     local TTIU is TimeStamp():seconds.                                                                 // Time of impact in universal ksc time
     local TTI is 0.
@@ -15,8 +17,19 @@ function land {
     local thrott is 0.
     lock throttle to thrott.
 
+    function stageTitle {
+        clearScreen.
+        parameter text.
+        from {local x is terminal:width.} until x = 0 step {set x to x-1.} do {
+            set text to text + " ".
+        }
+        print text at (0, 2).
+    }
+
     function boostBackBurn {
+        stageTitle("BOOST BACK BURN").
         lock boostBackDir to heading(waypoint("KSC"):geoposition:heading, 0).
+        sas off.
         lock steering to boostBackDir.
         set thrott to 0.1.
 
@@ -36,7 +49,6 @@ function land {
         when burnStartTimeSet and TimeStamp():seconds >= TTIU - gearExtendTime then gear on.
     }
 
-    local burnStartTime is 0.
 
     function unpackResults {
         set burnStartTime to landingSimFX["getResults"]()["Burn start time"].
@@ -46,7 +58,8 @@ function land {
         set impactAltitude to landingSimFX["getResults"]()["Height MSL"].
     }
 
-    function waitForBurn {
+    function waitForLandingBurn {
+        stageTitle("WAITING FOR BURN").
         until False {
             landingSimFX["landing"]().
             unpackResults().
@@ -54,11 +67,9 @@ function land {
             local timeToBurn is burnStartTime - TimeStamp():seconds.
             print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
             print "Time to burn: " + timeToBurn at(0, 15).
-            if burnStartTimeSet and timeToBurn <= 0 return.
+            if burnStartTimeSet and timeToBurn <= 0 break.
         }
     }
-
-    local shipComHeight is 20.17.
 
     function getHeightAboveGround {
         return (altitude-geoposition:terrainheight) - shipComHeight.
@@ -71,30 +82,37 @@ function land {
         return targetThrust / ship:maxThrust.
     }
 
-    function manageBurn {
+    function landingBurn {
+        stageTitle("LANDING BURN").
+
         until ship:status = "LANDED" {
             set thrott to getTargetThrottle().
             print "Throttle: " + thrott at (0, 31).
         }
     }
 
+    stageTitle("WAITING FOR STAGE SEPARATION").
     wait until stage:number = 0.
 
     boostBackBurn().
+    clearScreen.
 
     set thrott to 0.
     brakes on.
     gear off.
-    sas on.
-    wait 0.01.
-    set navmode to "surface".
-    set sasmode to "retrograde".
+    lock steering to (-1) * ship:velocity:surface.
+
+    stageTitle("WAITING FOR DESCENT INTO ATMOSPHERE").
+    wait until ship:dynamicpressure > 0 and ship:verticalspeed < -50.
+
+    landingSimFX["restartSimulation"]().
+    unpackResults().
 
     setGearTrigger().
 
-    waitForBurn().
+    waitForLandingBurn().
     set thrott to 1.
-    manageBurn().
+    landingBurn().
     set thrott to 0.
 }
 

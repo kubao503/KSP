@@ -58,7 +58,7 @@ function landingSim {
     }
 
     function getThrustVec {
-        if isBurnActive {
+        if isBurnActive() {
             local totalThrust is ship:maxThrust / ship:mass.
             return -srfVelVec:normalized * totalThrust.
         }
@@ -144,7 +144,6 @@ function landingSim {
         if inATM updateAtmosphere(elapsedTime, heightMSL, srfVel, 0).
     }
 
-
     function iterationTrajectory {
         // PRIVATE iterationTrajectory :: nothing -> nothing
         // This function uses the ODE solver to predict the future position
@@ -159,10 +158,10 @@ function landingSim {
         set posVec to ODEresults[1]:vec.
         set heightMSL to (posVec):mag-bodyRadius.
 
-        local descendRate is (measureHeight() - oldMeasureHeight()) / dt.
-        set stoppedMidAir to descendRate >= -0.05.
-
         updateFutureSrfPosVec(elapsedTime).
+
+        local vertialSpeed is (measureHeight() - oldMeasureHeight()) / dt.
+        set stoppedMidAir to vertialSpeed >= -0.05.
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -748,7 +747,7 @@ global landingSimFX is landingSim(
     1,              // targetError
     False,          // endInObt
     False,          // exactAtmo
-    True,          // useGUI
+    False,          // useGUI
     True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
