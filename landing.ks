@@ -4,10 +4,12 @@ runpath("landing_sim.ks").
 runpath("Library/Physics.ks").
 
 function land {
+    // CONSTANTS
     local gearExtendTime is 7.
     local continentHeight is 20.
     local shipComHeight is 20.17.
 
+    local thrott is 0.
     local results is lexicon().
     unpackResults().
 
@@ -29,11 +31,19 @@ function land {
         unpackResults().
     }
 
+    function manualFlight {
+        stageTitle("WAITING FOR STAGE SEPARATION").
+        wait until stage:number = 0.
+    }
+
     function boostBackBurn {
         stageTitle("BOOST BACK BURN").
-        lock boostBackDir to heading(waypoint("KSC"):geoposition:heading, 0).
+
         sas off.
+        lock boostBackDir to heading(waypoint("KSC"):geoposition:heading, 0).
         lock steering to boostBackDir.
+
+        lock throttle to thrott.
         set thrott to 0.1.
 
         wait until vang(ship:facing:forevector, boostBackDir:forevector) < 12.
@@ -90,28 +100,25 @@ function land {
     function landingBurn {
         stageTitle("LANDING BURN").
 
+        set thrott to 1.
+
         until ship:status = "LANDED" {
             set thrott to getTargetThrottle().
             print "Throttle: " + thrott at (0, 31).
         }
+
+        set thrott to 0.
     }
 
-    stageTitle("WAITING FOR STAGE SEPARATION").
-    wait until stage:number = 0.
-
-    local thrott is 0.
-    lock throttle to thrott.
-
+    manualFlight().
     boostBackBurn().
-
     waitForDescentInAtmosphere().
 
     restartSimulation().
+
     setGearTrigger().
     waitForLandingBurn().
-    set thrott to 1.
     landingBurn().
-    set thrott to 0.
 }
 
 land().
