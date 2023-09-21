@@ -717,17 +717,12 @@ function landingSim {
 
     function getResults {
         return lexicon(
-            "Surface Velocity Vector", finalSrfVelVec,
-            "Orbit Velocity Vector", finalObtVelVec,
-            "Position", finalPos,
-            "Geoposition", finalPosGeo,
-            "Height MSL", finalHeightMSL,
-            "Height AGL", finalHeightAGL,
-            "Time to Impact", TTI,
-            "Time of Impact", TTIU,
-            "Mission Time of Impact", TTIM,
-            "Burn start time", burnStartTime,
-            "Burn start time set", burnStartTimeSet
+            "impactGeoPosition", finalPosGeo,
+            "impactAltitude", finalHeightMSL,
+            "TTI", TTI,
+            "TTIU", TTIU,
+            "burnStartTime", burnStartTime,
+            "burnStartTimeSet", burnStartTimeSet
         ).
     }
 

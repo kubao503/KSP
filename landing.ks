@@ -8,11 +8,12 @@ function land {
     local continentHeight is 20.
     local shipComHeight is 20.17.
 
-    local burnStartTime is 0.
-    local burnStartTimeSet is False.
-    local TTIU is TimeStamp():seconds.                                                                 // Time of impact in universal ksc time
-    local TTI is 0.
-    local impactAltitude is 0.
+    local results is lexicon().
+    unpackResults().
+
+    function unpackResults {
+        set results to landingSimFX["getResults"]().
+    }
 
     function stageTitle {
         clearScreen.
@@ -38,11 +39,11 @@ function land {
         wait until vang(ship:facing:forevector, boostBackDir:forevector) < 12.
 
         set thrott to 1.
-        until impactAltitude >= continentHeight and TTI > 1e-3 {
+        until results["impactAltitude"] >= continentHeight and results["TTI"] > 1e-3 {
             landingSimFX["freeFall"]().
             unpackResults().
-            print "Impact altitude: " + impactAltitude at (0, 20).
-            print "Time to impact: " + TTI at (0, 21).
+            print "Impact altitude: " + results["impactAltitude"] at (0, 20).
+            print "Time to impact: " + results["TTI"] at (0, 21).
         }
         unlock steering.
     }
@@ -59,15 +60,7 @@ function land {
     }
 
     function setGearTrigger {
-        when burnStartTimeSet and TimeStamp():seconds >= TTIU - gearExtendTime then gear on.
-    }
-
-    function unpackResults {
-        set burnStartTime to landingSimFX["getResults"]()["Burn start time"].
-        set burnStartTimeSet to landingSimFX["getResults"]()["Burn start time set"].
-        set TTIU to landingSimFX["getResults"]()["Time of Impact"].
-        set TTI to landingSimFX["getResults"]()["Time to Impact"].
-        set impactAltitude to landingSimFX["getResults"]()["Height MSL"].
+        when results["burnStartTimeSet"] and TimeStamp():seconds >= results["TTIU"] - gearExtendTime then gear on.
     }
 
     function waitForLandingBurn {
@@ -76,10 +69,10 @@ function land {
             landingSimFX["landing"]().
             unpackResults().
 
-            local timeToBurn is burnStartTime - TimeStamp():seconds.
-            print "Time to impact: " + (TTIU - TimeStamp():seconds) at (0, 14).
+            local timeToBurn is results["burnStartTime"] - TimeStamp():seconds.
+            print "Time to impact: " + (results["TTIU"] - TimeStamp():seconds) at (0, 14).
             print "Time to burn: " + timeToBurn at(0, 15).
-            if burnStartTimeSet and timeToBurn <= 0 break.
+            if results["burnStartTimeSet"] and timeToBurn <= 0 break.
         }
     }
 
