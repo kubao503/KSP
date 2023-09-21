@@ -3,6 +3,7 @@
 // By Ren0k                             //
 //////////////////////////////////////////
 @LAZYGLOBAL off.
+@CLOBBERBUILTINS on.
 
 function getOrbitalRadius {
     // PUBLIC getOrbitalRadius :: float : float : float -> float
@@ -16,14 +17,14 @@ function getOrbitalRadius {
 
 function getTrueAnomaly {
     // PUBLIC getTrueAnomaly :: float : float : float -> list
-    // Get 2 True Anomaly Theta (θ) values 
+    // Get 2 True Anomaly Theta (θ) values
     parameter       rad is ship:altitude+body:radius,
                     a is ship:orbit:semimajoraxis,
                     e is ship:orbit:eccentricity.
 
     set e to min(max(e,1e-5),1-(1e-5)).
     local θ is arcCos(min(max(((-a * e^2 + a - rad) / (e * rad)),-1),1)).
-    
+
     return list(θ, 360-θ).
 }
 
@@ -42,7 +43,7 @@ function getMeanAnomaly {
     parameter       θ is ship:orbit:trueanomaly,
                     e is ship:orbit:eccentricity,
                     Ea is getEccentricAnomaly(θ, e).
-    
+
     local M is Ea - (e * sin(Ea) * constant:radtodeg).
     return mod(M + 360, 360).
 }
@@ -75,7 +76,7 @@ function getLongitudeOfPeriapsis {
     // Get the Longitude of Periapsis 'ϖ'
     parameter       Ω is ship:orbit:longitudeofascendingnode,
                     w is ship:orbit:argumentofperiapsis.
-    
+
     return mod(Ω + w, 360).
 }
 
@@ -112,7 +113,7 @@ function getPlanarVelocities {
                     n is getMeanNotion(),
                     ϖ is getLongitudeOfPeriapsis(),
                     λ is getMeanLongitude().
-                    
+
     local k is e * cos(ϖ).
     local h is e * sin(ϖ).
     local p is e * sin(eA).
@@ -247,7 +248,7 @@ function altitudeToOrbit {
     local curOrbit is orbitFromVector(posVec, obtVelVec, c, kscUniversalTime).
 
     local TT is getTimeToAltitude(
-        targetAlt, c, 
+        targetAlt, c,
         curOrbit:trueanomaly, curOrbit:eccentricity,
         curOrbit:semimajoraxis, curOrbit:apoapsis,
         curOrbit:periapsis, curOrbit:period
@@ -263,7 +264,7 @@ function altitudeToOrbit {
         curOrbit:meananomalyatepoch,
         c
         ).
-    
+
     return lexicon(
         "Position", nextOrbit:position,
         "Orbital Velocity Vector", nextOrbit:velocity:orbit,
@@ -273,4 +274,3 @@ function altitudeToOrbit {
         "Next Orbit", nextOrbit
     ).
 }
-

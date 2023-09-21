@@ -5,7 +5,7 @@ runpath("Library/Physics.ks").
 
 function land {
     local gearExtendTime is 7.
-    local continentHeight is 10.
+    local continentHeight is 20.
     local shipComHeight is 20.17.
 
     local burnStartTime is 0.
@@ -13,9 +13,6 @@ function land {
     local TTIU is TimeStamp():seconds.                                                                 // Time of impact in universal ksc time
     local TTI is 0.
     local impactAltitude is 0.
-
-    local thrott is 0.
-    lock throttle to thrott.
 
     function stageTitle {
         clearScreen.
@@ -26,6 +23,11 @@ function land {
         print text at (0, 2).
     }
 
+    function restartSimulation {
+        landingSimFX["restartSimulation"]().
+        unpackResults().
+    }
+
     function boostBackBurn {
         stageTitle("BOOST BACK BURN").
         lock boostBackDir to heading(waypoint("KSC"):geoposition:heading, 0).
@@ -33,10 +35,10 @@ function land {
         lock steering to boostBackDir.
         set thrott to 0.1.
 
-        wait until vang(ship:facing:forevector, boostBackDir:forevector) < 10.
+        wait until vang(ship:facing:forevector, boostBackDir:forevector) < 12.
 
         set thrott to 1.
-        until impactAltitude >= continentHeight and TTI > 0 {
+        until impactAltitude >= continentHeight and TTI > 1e-3 {
             landingSimFX["freeFall"]().
             unpackResults().
             print "Impact altitude: " + impactAltitude at (0, 20).
@@ -94,22 +96,21 @@ function land {
     stageTitle("WAITING FOR STAGE SEPARATION").
     wait until stage:number = 0.
 
+    local thrott is 0.
+    lock throttle to thrott.
+
     boostBackBurn().
-    clearScreen.
 
     set thrott to 0.
     brakes on.
     gear off.
     lock steering to (-1) * ship:velocity:surface.
 
-    stageTitle("WAITING FOR DESCENT INTO ATMOSPHERE").
+    stageTitle("WAITING FOR DESCENT IN ATMOSPHERE").
     wait until ship:dynamicpressure > 0 and ship:verticalspeed < -50.
 
-    landingSimFX["restartSimulation"]().
-    unpackResults().
-
+    restartSimulation().
     setGearTrigger().
-
     waitForLandingBurn().
     set thrott to 1.
     landingBurn().

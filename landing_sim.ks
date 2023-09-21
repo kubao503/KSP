@@ -73,14 +73,14 @@ function landingSim {
 
         local orbitalVelVec is values[0].
         local positionVec is values[1].
-        local altitude is max(positionVec:mag-bodyRadius,0).
-        local gravityVec is -positionVec:normalized * getGravity(altitude).
+        local height is max(positionVec:mag-bodyRadius,0).
+        local gravityVec is -positionVec:normalized * getGravity(height).
         local dragVec is V(0,0,0).
-        if altitude < atmHeight {
+        if height < atmHeight {
             set tanVelVec to vcrs(bodyAngVel, positionVec).                                                  // Tangent velocity vector use for orb-srf vec translation
             set srfVelVec to orbitalVelVec - tanVelVec.                                                       // Surface velocity vector calculated from orbit velocity vector
             set srfVel to srfVelVec:mag.                                                            // TAS or surface velocity
-            updateAtmosphere(elapsedTime+iterDT, altitude, srfVel, updateInterval).                       // Update atmospheric conditions
+            updateAtmosphere(elapsedTime+iterDT, height, srfVel, updateInterval).                       // Update atmospheric conditions
             set reynoldsNumber to posRHO*srfVel.                                                    // Pseudo-Reynolds number as used by a mach number float curve
             if (reynoldsNumber < 1) or (reynoldsNumber > 100) {
                 set reynoldsCorrection to correctReynoldsCd(reynoldsNumber).                        // The actual reynolds correction to be applied as calculated by the function
@@ -160,8 +160,8 @@ function landingSim {
 
         updateFutureSrfPosVec(elapsedTime).
 
-        local vertialSpeed is (measureHeight() - oldMeasureHeight()) / dt.
-        set stoppedMidAir to vertialSpeed >= -0.05.
+        local measuredVerticalSpeed is (measureHeight() - oldMeasureHeight()) / max(dt, 0.001).
+        set stoppedMidAir to measuredVerticalSpeed >= -0.05.
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -451,6 +451,7 @@ function landingSim {
     local masterFunctionManager is lexicon().                                                       // All functions in this lexicon will be executed by the main loop
     local utilityFX is lexicon().
     set utilityFX["additionalImpactCondition"] to { return False. }.
+    set utilityFX["impactUpdates"] to {}.
     set masterFunctionManager["Latency"] to {                                                       // Used to check the latency or calculation time of the loop
         set latency to timestamp():seconds - oldTime.
         set oldTime to timestamp():seconds.}.
@@ -751,6 +752,6 @@ global landingSimFX is landingSim(
     True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
-    ship:name,      // profileName
+    "Super Heavy",      // profileName
     ship:body       // bodyName
 ).
