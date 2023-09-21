@@ -47,10 +47,20 @@ function land {
         unlock steering.
     }
 
+    function waitForDescentInAtmosphere {
+        stageTitle("WAITING FOR DESCENT IN ATMOSPHERE").
+
+        set thrott to 0.
+        brakes on.
+        gear off.
+        lock steering to (-1) * ship:velocity:surface.
+
+        wait until ship:dynamicpressure > 0 and ship:verticalspeed < -50.
+    }
+
     function setGearTrigger {
         when burnStartTimeSet and TimeStamp():seconds >= TTIU - gearExtendTime then gear on.
     }
-
 
     function unpackResults {
         set burnStartTime to landingSimFX["getResults"]()["Burn start time"].
@@ -101,13 +111,7 @@ function land {
 
     boostBackBurn().
 
-    set thrott to 0.
-    brakes on.
-    gear off.
-    lock steering to (-1) * ship:velocity:surface.
-
-    stageTitle("WAITING FOR DESCENT IN ATMOSPHERE").
-    wait until ship:dynamicpressure > 0 and ship:verticalspeed < -50.
+    waitForDescentInAtmosphere().
 
     restartSimulation().
     setGearTrigger().
