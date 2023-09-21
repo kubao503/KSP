@@ -731,6 +731,7 @@ function landingSim {
         "freeFall", freeFall@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
+        "impact", {return loopCounter <> 0.},
         "getResults", getResults@
     ).
 }

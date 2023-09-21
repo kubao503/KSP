@@ -9,12 +9,27 @@ function land {
     local continentHeight is 20.
     local shipComHeight is 20.17.
 
-    local thrott is 0.
     local results is lexicon().
-    unpackResults().
+    local kscSqrDistance is 0.
+    local oldKscSqrDistance is 0.
+    local kscSqrDistanceChange is 0.
 
-    function unpackResults {
-        set results to landingSimFX["getResults"]().
+    updateResults(True).
+
+    local thrott is 0.
+
+    function updateKscDistance {
+        set oldKscSqrDistance to kscSqrDistance.
+        set kscSqrDistance to (results["impactGeoPosition"]:position - waypoint("KSC"):position):sqrMagnitude.
+        set kscSqrDistanceChange to kscSqrDistance - oldKscSqrDistance.
+    }
+
+    function updateResults {
+        parameter forceUpdate is False.
+        if landingSimFX["impact"]() or forceUpdate {
+            set results to landingSimFX["getResults"]().
+            updateKscDistance().
+        }
     }
 
     function stageTitle {
@@ -28,7 +43,7 @@ function land {
 
     function restartSimulation {
         landingSimFX["restartSimulation"]().
-        unpackResults().
+        updateResults().
     }
 
     function manualFlight {
@@ -36,9 +51,7 @@ function land {
         wait until stage:number = 0.
     }
 
-    function boostBackBurn {
-        stageTitle("BOOST BACK BURN").
-
+    function orientForBoostBackBurn {
         sas off.
         lock boostBackDir to heading(waypoint("KSC"):geoposition:heading, 0).
         lock steering to boostBackDir.
@@ -46,16 +59,33 @@ function land {
         lock throttle to thrott.
         set thrott to 0.1.
 
-        wait until vang(ship:facing:forevector, boostBackDir:forevector) < 12.
+        wait until vang(ship:facing:forevector, boostBackDir:forevector) < 15.
+    }
+
+    function executeBoostBackBurn {
 
         set thrott to 1.
-        until results["impactAltitude"] >= continentHeight and results["TTI"] > 1e-3 {
+
+        until results["impactAltitude"] >= continentHeight and results["TTI"] > 1e-3 and kscSqrDistanceChange >= 0 {
             landingSimFX["freeFall"]().
-            unpackResults().
+            updateResults().
+            set thrott to 1.6e-5 * sqrt(kscSqrDistance) + 0.05.
+
             print "Impact altitude: " + results["impactAltitude"] at (0, 20).
             print "Time to impact: " + results["TTI"] at (0, 21).
+            print "Sqr distance: " + kscSqrDistance + "                        " at (0, 25).
+            print "thrott: " + thrott + "                        " at (0, 28).
+            print "Distance change: " + kscSqrDistanceChange + "                 " at (0, 29).
         }
+
         unlock steering.
+    }
+
+    function boostBackBurn {
+        stageTitle("BOOST BACK BURN").
+
+        orientForBoostBackBurn().
+        executeBoostBackBurn().
     }
 
     function waitForDescentInAtmosphere {
@@ -77,11 +107,11 @@ function land {
         stageTitle("WAITING FOR BURN").
         until False {
             landingSimFX["landing"]().
-            unpackResults().
+            updateResults().
 
             local timeToBurn is results["burnStartTime"] - TimeStamp():seconds.
             print "Time to impact: " + (results["TTIU"] - TimeStamp():seconds) at (0, 14).
-            print "Time to burn: " + timeToBurn at(0, 15).
+            print "Time to burn: " + timeToBurn at(0, 15)..
             if results["burnStartTimeSet"] and timeToBurn <= 0 break.
         }
     }
