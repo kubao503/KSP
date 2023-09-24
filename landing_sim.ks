@@ -16,6 +16,9 @@ runpath("Library/Orbit.ks").                                                    
 runpath("Library/Physics.ks").
 runpath("CCAT/DragProfile/LIB/Profile.ks").                                         // Drag Profile function required for reynolds correction
 
+local logFileName is "landing_log.txt".
+deletepath(logFileName).
+
 //////////////////////////////////////////
 // MAIN FUNCTION                       	//
 //////////////////////////////////////////
@@ -354,6 +357,9 @@ function landingSim {
             print "Height: " + finalHeightAGL at (0, 6).
             print "                                           " at (0, 7).
             print "Burn delay: " + burnDelay at (0, 8).
+
+            log finalHeightAGL to logFileName.
+
             set burnStartTime to burnStartTime + burnDelay.
         } else {
             local burnTime is finalSrfVelVec:mag^2 / 2 / burnStartVec:mag / maxAcceleration.
@@ -361,6 +367,9 @@ function landingSim {
             print "                                           " at (0, 6).
             print "Velocity: " + finalSrfvelVec:mag at (0, 7).
             print "Burn time: " + burnTime at (0, 8).
+
+            log -finalSrfvelVec:mag to logFileName.
+
             set burnStartTime to burnStartTime - burnTime.
         }
     }
