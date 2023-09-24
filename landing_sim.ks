@@ -59,7 +59,7 @@ function landingSim {
 
     function getThrustVec {
         if isBurnActive() {
-            local totalThrust is ship:maxThrust / ship:mass.
+            local totalThrust is ship:maxThrust * 1000 / vesselMass.
             return -srfVelVec:normalized * totalThrust.
         }
         return v(0,0,0).
@@ -158,6 +158,8 @@ function landingSim {
         set posVec to ODEresults[1]:vec.
         set heightMSL to (posVec):mag-bodyRadius.
 
+        if isBurnActive() set vesselMass to vesselMass - massFlow * dt.
+
         updateFutureSrfPosVec(elapsedTime).
 
         local measuredVerticalSpeed is (measureHeight() - oldMeasureHeight()) / max(dt, 0.001).
@@ -252,6 +254,13 @@ function landingSim {
     local vesselHeight is ship:bounds:extents:mag*0.9.                                              // Distance from the vessel COM to the furthest corner used to determine an accurate Height above terrain
     local vesselMass is ship:mass*1000.                                                             // Weight of the vessel in kg
 
+    local engs is list().
+    list engines in engs.
+    local massFlow is 0.
+    for eng in engs {
+        set massFlow to massFlow + eng:maxMassFlow * 1000.
+    }
+
     // Vectors and Geoposition
     local bodyPosition is bodyName:position.                                                        // Recorded body position at the start of the simulation
     local startPosVec is (ship:position-bodyPosition).                                              // The starting position vector in the SOI reference frame
@@ -333,11 +342,10 @@ function landingSim {
     }
 
     function landingBurnUpdate {
-        local maxAcceleration is ship:maxthrust / ship:mass - getGravity(heightMSL).
+        local maxAcceleration is ship:maxthrust * 1000 / vesselMass - getGravity(heightMSL).
 
         if not burnStartTimeSet {
             local burnTime is finalSrfVelVec:mag / maxAcceleration.
-            print "Burn time: " + burnTime at (0, 13).
             set burnStartTime to TTIU - burnTime.
             set burnStartTimeSet to True.
         } else if stoppedMidAir {
@@ -388,6 +396,7 @@ function landingSim {
         set totalDrag to 0.
         // New Constants
         set vesselMass to ship:mass*1000.
+        print "Starting vessel mass: " + vesselMass at (0, 34).
         // Vectors and Geoposition
         set bodyPosition to bodyName:position.
         set startPosVec to (ship:position-bodyName:position).
@@ -533,6 +542,8 @@ function landingSim {
     function simulationComplete {
         // PRIVATE simulationComplete :: nothing -> nothing
         // When the simulation is finished the final state is recorded for output
+
+        print "Fuel left (mass): " + vesselMass at (0, 33).
 
         set loopTimer to timestamp():seconds - kscUniversalTime.
         set heightErrorTotal to (finalPosGeo:position-posGeo:position):mag.

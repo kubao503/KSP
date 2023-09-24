@@ -77,8 +77,7 @@ function land {
         until fallOnGroundAndMovingAwayFromKSC() {
             landingSimFX["freeFall"]().
             updateResults().
-
-            set thrott to max(1.5e-5 * kscDistance, 0.05).
+            set thrott to max(1.4e-5 * kscDistance, 0.05).
 
             print "Impact altitude: " + results["impactAltitude"] at (0, 20).
             print "Time to impact: " + results["TTI"] at (0, 21).
@@ -119,7 +118,8 @@ function land {
 
             local timeToBurn is results["burnStartTime"] - TimeStamp():seconds.
             print "Time to impact: " + (results["TTIU"] - TimeStamp():seconds) at (0, 14).
-            print "Time to burn: " + timeToBurn at(0, 15)..
+            print "Burn time: " + (results["TTIU"] - results["burnStartTIme"]) at(0, 15).
+            print "Time to burn: " + timeToBurn at(0, 16).
             if results["burnStartTimeSet"] and timeToBurn <= 0 break.
         }
     }
