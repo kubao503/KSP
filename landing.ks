@@ -24,7 +24,7 @@ function land {
 
     function updateResults {
         parameter forceUpdate is False.
-        if landingSimFX["impact"]() or forceUpdate {
+        if landingSimFX["impactDataReady"]() or forceUpdate {
             set results to landingSimFX["getResults"]().
             updateKscDistance().
         }
@@ -57,7 +57,10 @@ function land {
         lock throttle to thrott.
         set thrott to 0.1.
 
-        wait until vang(ship:facing:forevector, boostBackDir:forevector) < 15.
+        until vang(ship:facing:forevector, boostBackDir:forevector) < 15 {
+            landingSimFX["freeFall"]().
+            updateResults().
+        }
     }
 
     function fallOnGroundAndMovingAwayFromKSC {
@@ -74,7 +77,8 @@ function land {
         until fallOnGroundAndMovingAwayFromKSC() {
             landingSimFX["freeFall"]().
             updateResults().
-            set thrott to max(1.6e-5 * kscDistance, 0.12).
+
+            set thrott to max(1.5e-5 * kscDistance, 0.05).
 
             print "Impact altitude: " + results["impactAltitude"] at (0, 20).
             print "Time to impact: " + results["TTI"] at (0, 21).

@@ -545,6 +545,8 @@ function landingSim {
         set finalHeightMSL to heightMSL.
         set upVector to (posGeo:position - bodyName:position):normalized.
 
+        set impactDataReady to True.
+
         set TTIU to kscUniversalTime + elapsedTime.
         set TTI to TTIU - timestamp():seconds.
         set TTIM to secondsToClock(missionTime + elapsedTime).
@@ -564,6 +566,7 @@ function landingSim {
     local burnStartTime is 0.
     local burnStartTimeSet is False.
     local burnStartVec is v(0,0,0).
+    local impactDataReady is False.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////// This section is used mainly for the GUI to display real time information
@@ -716,6 +719,7 @@ function landingSim {
     }
 
     function getResults {
+        set impactDataReady to False.
         return lexicon(
             "impactGeoPosition", finalPosGeo,
             "impactAltitude", finalHeightMSL,
@@ -731,7 +735,7 @@ function landingSim {
         "freeFall", freeFall@,
         "restartSimulation", restartSimulation@,
         "simulationFinished", {return masterManager["Masterswitch"].},
-        "impact", {return loopCounter <> 0.},
+        "impactDataReady", {return impactDataReady.},
         "getResults", getResults@
     ).
 }
