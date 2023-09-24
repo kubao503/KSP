@@ -10,18 +10,16 @@ function land {
     local shipComHeight is 20.17.
 
     local results is lexicon().
-    local kscSqrDistance is 0.
-    local oldKscSqrDistance is 0.
-    local kscSqrDistanceChange is 0.
+    local kscDistance is 0.
+    local oldKscDistance is 0.
 
     updateResults(True).
 
     local thrott is 0.
 
     function updateKscDistance {
-        set oldKscSqrDistance to kscSqrDistance.
-        set kscSqrDistance to (results["impactGeoPosition"]:position - waypoint("KSC"):position):sqrMagnitude.
-        set kscSqrDistanceChange to kscSqrDistance - oldKscSqrDistance.
+        set oldKscDistance to kscDistance.
+        set kscDistance to (results["impactGeoPosition"]:position - waypoint("KSC"):position):mag.
     }
 
     function updateResults {
@@ -62,20 +60,26 @@ function land {
         wait until vang(ship:facing:forevector, boostBackDir:forevector) < 15.
     }
 
+    function fallOnGroundAndMovingAwayFromKSC {
+        local kscDistanceChange is kscDistance - oldKscDistance.
+        return results["impactAltitude"] >= continentHeight
+            and results["TTI"] > 1e-3
+            and kscDistanceChange >= 0.
+    }
+
     function executeBoostBackBurn {
 
         set thrott to 1.
 
-        until results["impactAltitude"] >= continentHeight and results["TTI"] > 1e-3 and kscSqrDistanceChange >= 0 {
+        until fallOnGroundAndMovingAwayFromKSC() {
             landingSimFX["freeFall"]().
             updateResults().
-            set thrott to 1.6e-5 * sqrt(kscSqrDistance) + 0.05.
+            set thrott to max(1.6e-5 * kscDistance, 0.12).
 
             print "Impact altitude: " + results["impactAltitude"] at (0, 20).
             print "Time to impact: " + results["TTI"] at (0, 21).
-            print "Sqr distance: " + kscSqrDistance + "                        " at (0, 25).
+            print "Distance: " + kscDistance + "                        " at (0, 25).
             print "thrott: " + thrott + "                        " at (0, 28).
-            print "Distance change: " + kscSqrDistanceChange + "                 " at (0, 29).
         }
 
         unlock steering.
