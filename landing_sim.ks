@@ -256,6 +256,7 @@ function landingSim {
     local sgc is (constant:idealgas/molarmass).                                                     // Specific gas constant
     local vesselHeight is ship:bounds:extents:mag*0.9.                                              // Distance from the vessel COM to the furthest corner used to determine an accurate Height above terrain
     local vesselMass is ship:mass*1000.                                                             // Weight of the vessel in kg
+    local startVesselMass is vesselMass.
 
     local engs is list().
     list engines in engs.
@@ -405,7 +406,7 @@ function landingSim {
         set totalDrag to 0.
         // New Constants
         set vesselMass to ship:mass*1000.
-        print "Starting vessel mass: " + vesselMass at (0, 34).
+        set startVesselMass to vesselMass.
         // Vectors and Geoposition
         set bodyPosition to bodyName:position.
         set startPosVec to (ship:position-bodyName:position).
@@ -552,7 +553,8 @@ function landingSim {
         // PRIVATE simulationComplete :: nothing -> nothing
         // When the simulation is finished the final state is recorded for output
 
-        print "Fuel left (mass): " + vesselMass at (0, 33).
+        print "Start mass: " + startVesselMass / 1000 at (0, 33).
+        print "End mass:   " + vesselMass / 1000 at (0, 34).
 
         set loopTimer to timestamp():seconds - kscUniversalTime.
         set heightErrorTotal to (finalPosGeo:position-posGeo:position):mag.
