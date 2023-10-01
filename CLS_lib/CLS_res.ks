@@ -37,35 +37,36 @@ Function FuelRemaining {
 // Identifies the fuel tanks(s) providing fuel for the stage. First creates a list of all fuel tanks and the stage they are assocated with. Then compares the associated stages to find the tanks(s) associated with the largest/current stage.
 Function FuelTank {	
 	Parameter resourceName.
-	local MFT is list(list(),list(),list()).
+	local currentStageTanks is list().
+	local stages is list().
+	local allTanks is list().
 	global stagetanks is list().
 	for tank in ship:parts {
 		for res in tank:resources {
 			if res:name = resourceName and res:amount > 1 and res:enabled = true {
-				MFT[0]:add(tank).
-				MFT[2]:add(tank).
+				currentStageTanks:add(tank).
+				allTanks:add(tank).
 			}
 		}
 	}
-	for p in MFT[0] {
-		MFT[1]:add(p:stage).
+
+	for part in currentStageTanks {
+		stages:add(part:stage).
 	}
-	 Until MFT[1]:length = 1 {
-		if MFT[1][0] <= MFT [1][1] {
-			MFT[1]:remove(0).
-			MFT[0]:remove(0).
-		} else if MFT[1][0] >= MFT[1][1] {
-			MFT[1]:remove(1).
-			MFT[0]:remove(1).
+
+	Until stages:length = 1 {
+		if stages[0] <= stages[1] {
+			stages:remove(0).
+			currentStageTanks:remove(0).
+		} else if stages[0] >= stages[1] {
+			stages:remove(1).
+			currentStageTanks:remove(1).
 		}
 	}
-	stagetanks:add(MFT[0][0]).
-	for p in MFT[2] {
-		if p:uid = stagetanks[0]:uid {
-		} else {
-			if p:stage = stagetanks[0]:stage {
-				stagetanks:add(p).
-			}
+	stagetanks:add(currentStageTanks[0]).
+	for p in allTanks {
+		if p:uid <> stagetanks[0]:uid and p:stage = stagetanks[0]:stage {
+			stagetanks:add(p).
 		}
 	}
 }
