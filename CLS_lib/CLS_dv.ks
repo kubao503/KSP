@@ -4,14 +4,9 @@
 
 @lazyglobal off.
 
-// calculates remaining dV of current stage
-Function stageDV {
+Function getAverageIsp {
 	local plist is aelist.
-	local fuelmass is FuelRemaining(stagetanks,ResourceOne)*ResourceOneMass + FuelRemaining(stagetanks,ResourceTwo)*ResourceTwoMass.
-	local shipMass is ship:mass.
-	
 	if vehicleConfig = 1 {
-		set fuelmass to FuelRemaining(asrblist,SolidFuelName)*SolidFuelMass.
 		set plist to asrblist.
 	}
 
@@ -34,7 +29,25 @@ Function stageDV {
 	if not mDotTotal = 0 {
 		set averageIsp to thrustTotal/mDotTotal.
 	}
-	return (averageIsp*constant:g0*ln(shipMass / (shipMass-fuelmass)))-1.
+	return averageIsp.
+}
+
+Function getFuelMass {
+	if vehicleConfig = 1 {
+		return FuelRemaining(asrblist,SolidFuelName)*SolidFuelMass.
+	}
+	return FuelRemaining(stagetanks,ResourceOne)*ResourceOneMass + FuelRemaining(stagetanks,ResourceTwo)*ResourceTwoMass.
+}
+
+// calculates remaining dV of current stage
+Function stageDV {
+	local shipMass is ship:mass.
+	return (getAverageIsp() * constant:g0 * ln(shipMass / (shipMass - getFuelMass()))) - 1.
+}
+
+Function stageDVAfterSeparation {
+	local firstStageDryMass is 20.01.
+	return (getAverageIsp() * constant:g0 * ln((firstStageDryMass + getFuelMass()) / firstStageDryMass)) - 1.
 }
 
 // calulates remaining burn time for current fuel load
