@@ -280,9 +280,7 @@ Until launchcomplete {
 				}
 				scrollprint(PayloadProtectionConfig + " Configured For Launch").
 			} else {
-				scrollprint("Fairing Checks Complete").
-				set runmode to -1.
-				set cdownHoldReason to "AG10 Advisory".				
+				scrollprint("T-00:10", false).
 			}
 			set tminus to tminus-1.
 		}
