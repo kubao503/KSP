@@ -170,10 +170,12 @@ Function launchParameters {
 	lineh5:hide().
 	
 	HUD_gui:show().
+
+	local firstRun is true.
 	
 	//Loop
 	until confirmed {
-		until userInput {				
+		until userInput {
 			//Apoapsis
 			if tApoButton1:pressed {
 				lineh1:show().
@@ -284,7 +286,12 @@ Function launchParameters {
 				global lFailureApo is 9999999999.
 			}
 			wait 0.001.
+
+			if firstRun break.
 		}
+
+		set firstRun to false.
+
 		//Warnings
 		//Apoapsis Warning
 		if tApoButton1:pressed {
