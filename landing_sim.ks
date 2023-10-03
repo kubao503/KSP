@@ -774,6 +774,6 @@ global landingSimFX is landingSim(
     True,           // vectorVis
     3,              // heightError
     "Linear",       // interpolateMethod
-    "Super Heavy",      // profileName
+    "Falcon",       // profileName
     ship:body       // bodyName
 ).
