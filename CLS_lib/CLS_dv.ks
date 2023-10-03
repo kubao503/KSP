@@ -4,6 +4,9 @@
 
 @lazyglobal off.
 
+local firstStageDryMass is 20.01.
+local returnSpeedAdjustment is 1.78.
+
 Function getAverageIsp {
 	local plist is aelist.
 	if vehicleConfig = 1 {
@@ -46,8 +49,32 @@ Function stageDV {
 }
 
 Function stageDVAfterSeparation {
-	local firstStageDryMass is 20.01.
 	return (getAverageIsp() * constant:g0 * ln((firstStageDryMass + getFuelMass()) / firstStageDryMass)) - 1.
+}
+
+function getReturnSpeed {
+	local timeAscending is ship:verticalSpeed / constant:g0.
+	local timeDescending is sqrt((2*ship:altitude + ship:verticalSpeed^2/constant:g0) / constant:g0).
+
+	local kscDistance is (ship:geoPosition:position - waypoint("KSC"):position):mag.
+	local maxAcceleration is ship:maxthrust / firstStageDryMass.
+	local brakingDistance is ship:groundspeed^2 / 2 / maxAcceleration.
+
+	return returnSpeedAdjustment * (kscDistance + brakingDistance) / (timeAscending + timeDescending).
+}
+
+function getLandingDV {
+	return 225 * ship:deltav:current / ship:deltav:asl.
+}
+
+Function getDVMargin {
+	local gSpeed is ship:groundspeed.
+	local returnSpeed is getReturnSpeed().
+
+	print "ground speed " + gSpeed at (0, 33).
+	print "return speed " + returnSpeed at (0, 34).
+
+	return gSpeed + returnSpeed + getLandingDV().
 }
 
 // calulates remaining burn time for current fuel load

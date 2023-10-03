@@ -945,6 +945,24 @@ Until launchcomplete {
 			FuelCellToggle().
 		}
 	}
+
+	local dvMargin is 0.
+	local currentDV is 0.
+
+	// Leaving fuel for landing
+	if (runmode > 0 and missionElapsedTime > 1) {
+		set dvMargin to getDVMargin().
+		set currentDV to stageDVAfterSeparation().
+		print "dv " + currentDV at (0, 32).
+
+		if currentDV < dvMargin {
+			set launchcomplete to True.
+			local dvLogName is "dv_log.txt".
+			log "pred ground speed " + ship:groundspeed to dvLogName.
+			log "pred return speed " + getReturnSpeed() to dvLogName.
+			log "pred landing dv " + getLandingDV() to dvLogName.
+		}
+	}
 wait 0.01.
 }
 
