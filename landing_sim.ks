@@ -370,7 +370,7 @@ function landingSim {
 
             log minHeightAGL to logFileName.
 
-            set burnStartTime to burnStartTime + burnDelay.
+            set burnStartTime to min(burnStartTime + burnDelay, TTIU).
         } else {
             local burnTime is finalSrfVelVec:mag^2 / 2 / burnStartVec:mag / maxAcceleration.
             print "IMPACT " at (0, 5).
@@ -380,7 +380,7 @@ function landingSim {
 
             log -finalSrfvelVec:mag to logFileName.
 
-            set burnStartTime to burnStartTime - burnTime.
+            set burnStartTime to min(burnStartTime - burnTime, TTIU).
         }
     }
 
@@ -578,8 +578,8 @@ function landingSim {
         set upVector to (posGeo:position - bodyName:position):normalized.
 
         set impactDataReady to True.
-        if stoppedMidAir and minHeightAGL > savedHeightAGL {
-            set savedHeightAGL to minHeightAGL.
+        if stoppedMidAir and finalHeightAGL > savedHeightAGL {
+            set savedHeightAGL to finalHeightAGL.
 
             local positionLog is "position_log.txt".
             deletePath(positionLog).
