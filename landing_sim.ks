@@ -160,30 +160,37 @@ function landingSim {
         // New Position and Height
         set posVec to ODEresults[1]:vec.
         set heightMSL to (posVec):mag-bodyRadius.
-
-        if isBurnActive() set vesselMass to vesselMass - massFlow * dt.
-
         updateFutureSrfPosVec(elapsedTime).
-
-        local measuredVerticalSpeed is (measureHeight() - oldMeasureHeight()) / max(dt, 0.001).
-        set stoppedMidAir to measuredVerticalSpeed >= -0.05.
-        positionHistory:add(heightAGL).
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
+                // Ground hit
                 set sectionComplete to True.
             } else {
+                // Fall beneath ground - repeat with smaller dt
+                positionHistory:add("rev " + heightAGL).
                 reverseIterate(oldMeasureHeight()-altTarget, measureHeight()-altTarget).
             }
         } else {
             if (heightMSL > atmHeight) and (inATM) {
+                // Achieved orbit?
                 set sectionComplete to True.
             } else {
-                nextIteration().
+                // Just continue iterating - most common case
+                set stoppedMidAir to measureHeight() - oldMeasureHeight() >= 0.
+                set minHeightAGL to min(minHeightAGL, heightAGL).
+
+                //positionHistory:add(v(heightAGL, measureHeight() - oldMeasureHeight(), 0)).
+                positionHistory:add(heightAGL).
+
+                if not stoppedMidAir {
+                    if isBurnActive() { set vesselMass to vesselMass - massFlow * dt. }
+                    nextIteration().
+                }
             }
         }
 
-        if utilityFX["hasSimulationEnded"]() {
+        if utilityFX["hasSimulationFinished"]() {
             nextIteration().
             set ODEuseError to masterManager["useError"].
             checkState().
@@ -286,6 +293,7 @@ function landingSim {
     local oldHeightMSL is heightMSL.                                                                // Height above MSL for previous iteration
     local terrainHeight is max(posGeo:terrainheight,0).                                             // Current height of the terrain above mean sea level in meters
     local heightAGL is max(heightMSL-terrainHeight-vesselHeight,0).                                 // Current height above terrain in meters
+    local minHeightAGL is heightAGL.
     local oldHeightAGL is heightAGL.                                                                // Height above terrain for previous iteration
     local srfVel is srfVelVec:mag.                                                                  // Current surface velocity or TAS (True Airspeed) in m/s
     local gravAccel is bodyMu/posVec:mag^2.                                                         // Current gravitational acceleration in m/s^2
@@ -354,13 +362,13 @@ function landingSim {
             set burnStartTime to TTIU - burnTime.
             set burnStartTimeSet to True.
         } else if stoppedMidAir {
-            local burnDelay is 0.1 * finalHeightAGL / burnStartVec:mag.
+            local burnDelay is minHeightAGL / burnStartVec:mag.
             print "STOPPED" at (0, 5).
-            print "Height: " + finalHeightAGL at (0, 6).
+            print "Height: " + minHeightAGL  at (0, 6).
             print "                                           " at (0, 7).
             print "Burn delay: " + burnDelay at (0, 8).
 
-            log finalHeightAGL to logFileName.
+            log minHeightAGL to logFileName.
 
             set burnStartTime to burnStartTime + burnDelay.
         } else {
@@ -427,6 +435,7 @@ function landingSim {
         set oldHeightMSL to heightMSL.
         set terrainHeight to max(posGeo:terrainheight,0).
         set heightAGL to max(heightMSL-terrainHeight-vesselHeight, 0).
+        set minHeightAGL to heightAGL.
         set oldHeightAGL to heightAGL.
         set srfVel to srfVelVec:mag.
         set gravAccel to getGravity(heightMSL).
@@ -569,14 +578,15 @@ function landingSim {
         set upVector to (posGeo:position - bodyName:position):normalized.
 
         set impactDataReady to True.
-        if finalHeightAGL > savedHeightAGL {
-            set savedHeightAGL to finalHeightAGL.
+        if stoppedMidAir and minHeightAGL > savedHeightAGL {
+            set savedHeightAGL to minHeightAGL.
 
             local positionLog is "position_log.txt".
             deletePath(positionLog).
-            from {local x is 0.} until x = positionHistory:length step {set x to x+1.} do {
+            from {local i is 0.} until i = positionHistory:length step {set i to i+1.} do {
                 //log positionHistory[x]:x + ";" + positionHistory[x]:z to positionLog.
-                log positionHistory[x] to positionLog.
+                //log positionHistory[i]:x + ";" + positionHistory[i]:y to positionLog.
+                log positionHistory[i] to positionLog.
             }
         }
         set positionHistory to list().
@@ -727,7 +737,7 @@ function landingSim {
     checkState().
 
     function landing {
-        set utilityFX["hasSimulationEnded"] to { return sectionComplete or stoppedMidAir. }.
+        set utilityFX["hasSimulationFinished"] to { return sectionComplete or stoppedMidAir. }.
         set utilityFX["additionalImpactCondition"] to { return stoppedMidAir. }.
         set utilityFX["impactUpdates"] to {
             simulationComplete().
@@ -738,7 +748,7 @@ function landingSim {
     }
 
     function freeFall {
-        set utilityFX["hasSimulationEnded"] to { return sectionComplete. }.
+        set utilityFX["hasSimulationFinished"] to { return sectionComplete. }.
         set utilityFX["additionalImpactCondition"] to { return False. }.
         set utilityFX["impactUpdates"] to {
             simulationComplete().
