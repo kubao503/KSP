@@ -167,6 +167,7 @@ function landingSim {
 
         local measuredVerticalSpeed is (measureHeight() - oldMeasureHeight()) / max(dt, 0.001).
         set stoppedMidAir to measuredVerticalSpeed >= -0.05.
+        positionHistory:add(heightAGL).
 
         if measureHeight() < (altTarget + heightError) {
             if measureHeight() > (altTarget - heightError) {
@@ -353,7 +354,7 @@ function landingSim {
             set burnStartTime to TTIU - burnTime.
             set burnStartTimeSet to True.
         } else if stoppedMidAir {
-            local burnDelay is finalHeightAGL / burnStartVec:mag.
+            local burnDelay is 0.1 * finalHeightAGL / burnStartVec:mag.
             print "STOPPED" at (0, 5).
             print "Height: " + finalHeightAGL at (0, 6).
             print "                                           " at (0, 7).
@@ -568,6 +569,17 @@ function landingSim {
         set upVector to (posGeo:position - bodyName:position):normalized.
 
         set impactDataReady to True.
+        if finalHeightAGL > savedHeightAGL {
+            set savedHeightAGL to finalHeightAGL.
+
+            local positionLog is "position_log.txt".
+            deletePath(positionLog).
+            from {local x is 0.} until x = positionHistory:length step {set x to x+1.} do {
+                //log positionHistory[x]:x + ";" + positionHistory[x]:z to positionLog.
+                log positionHistory[x] to positionLog.
+            }
+        }
+        set positionHistory to list().
 
         set TTIU to kscUniversalTime + elapsedTime.
         set TTI to TTIU - timestamp():seconds.
@@ -589,6 +601,8 @@ function landingSim {
     local burnStartTimeSet is False.
     local burnStartVec is v(0,0,0).
     local impactDataReady is False.
+    local positionHistory is list().
+    local savedHeightAGL is 0.
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////// This section is used mainly for the GUI to display real time information
