@@ -88,6 +88,7 @@ function land {
         log "act ground speed: " + ship:groundspeed to dvLogName.
         local startDV is ship:deltav:current.
         local middleDV is 0.
+        local middleSpeed is 2137.
 
         until fallOnGroundAndMovingAwayFromKSC() {
             landingSimFX["freeFall"]().
@@ -97,6 +98,7 @@ function land {
                 set thrott to 1.
 
                 set middleDV to ship:deltav:current.
+                set middleSpeed to ship:groundspeed.
             } else {
                 set thrott to getBoostBackThrottle().
             }
@@ -106,6 +108,7 @@ function land {
             print "Distance: " + kscDistance + "                        " at (0, 25).
         }
 
+        log "middle ground speed: " + middleSpeed to dvLogName.
         log "ground speed dv change: " + (startDV - middleDV) to dvLogName.
         log "return speed dv change: " + (middleDV - ship:deltav:current) to dvLogName.
 
