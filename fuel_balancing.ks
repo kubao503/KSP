@@ -1,7 +1,7 @@
 @lazyGlobal off.
 runOncePath("arrows.ks").
 
-local targetFuelTankPosition is -0.3. // Rises towards the engine
+local targetFuelTankPosition is -0.29. // Rises towards the engine
 
 function roundVec {
     parameter vec, digits.
