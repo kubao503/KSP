@@ -3,11 +3,6 @@ runOncePath("arrows.ks").
 
 local targetFuelTankPosition is -0.29. // Rises towards the engine
 
-function roundVec {
-    parameter vec, digits.
-    return v(round(vec:x, digits), round(vec:y, digits), round(vec:z, digits)).
-}
-
 function setFuelTankPosition {
     parameter targetPosition.
 
