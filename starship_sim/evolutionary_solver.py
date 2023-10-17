@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 
-class GeneticSolver():
+class EvolutionarySolver():
     def __init__(self, t_max, pc, pm):
         self.set_parameters(t_max, pc, pm)
 
@@ -80,6 +80,6 @@ class GeneticSolver():
         for individual in population:
             for index, gene in enumerate(individual):
                 if random.random() < self.pm:
-                    individual[index] = not gene # Switching gene value
+                    individual[index] = max(np.random.normal(gene, 1), 0) # Switching gene value
             result.append(individual)
         return result
