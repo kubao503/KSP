@@ -36,7 +36,14 @@ class EvolutionarySolver():
 
     def __selection(self, population, assessment, const):
         assessment += const
+        non_negative = assessment >= 0
+        if not np.all(non_negative):
+            raise ValueError(f'Assessment cannot be negative: {assessment}')
+
         total_profit = sum(assessment)
+        if total_profit == 0:
+            raise ValueError(f'Total profit must be positive: {total_profit}')
+
         roulette_wheel = assessment / total_profit
         results = []
         for _ in range(len(population)):
