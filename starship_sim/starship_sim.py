@@ -2,8 +2,24 @@ from pid import PID
 from pid_log import PidLog
 
 
-class PidSim():
-    def __init__(self, pitch_inertia, roll_inertia, step) -> None:
+def starship_profit(pitch_params):
+    # error, acceleration, acceleration change
+    pid_kit = StarshipPIDKit(pitch_params)
+    sim = StarshipSim(pitch_inertia=1, roll_inertia=1, step=1, pid_kit=pid_kit)
+    sim.simulate(500)
+    return 1
+
+
+class StarshipPIDKit():
+    def __init__(self, pitch_params) -> None:
+        self.pitch = PID(*pitch_params[:3])
+        self.pitch_speed = PID(*pitch_params[3:])
+        #self.roll = PID(roll_params[:3])
+        #self.roll_speed = PID(roll_params[3:])
+
+
+class StarshipSim():
+    def __init__(self, pitch_inertia, roll_inertia, step, pid_kit: StarshipPIDKit) -> None:
         self.pitch = 20
         self.roll = 0
 
@@ -14,13 +30,11 @@ class PidSim():
         self.ROLL_INERTIA = roll_inertia
         self.STEP = step
 
-        self.pitch_pid = PID(0.02, 0, 1)
-        self.roll_pid = PID(1, 0, 0)
-
+        self.pid_kit = pid_kit
         self.log = PidLog()
 
 
-    def iteration(self, pitch_acceleration, roll_acceleration):
+    def __iteration(self, pitch_acceleration, roll_acceleration):
         self.pitchSpeed += pitch_acceleration * self.PITCH_INERTIA
         self.rollSpeed += roll_acceleration * self.ROLL_INERTIA
 
@@ -30,11 +44,7 @@ class PidSim():
 
     def simulate(self, iterations):
         for _ in range(iterations):
-            pitchAcceleration = self.pitch_pid.update(self.pitch, self.log)
-            #rollAcceleration = self.roll_pid.result(self.roll)
-            self.iteration(pitchAcceleration, 0)
-        self.log.plot()
-
-
-sim = PidSim(pitch_inertia=1, roll_inertia=1, step=1)
-sim.simulate(500)
+            pitchAcceleration = self.pid_kit.pitch.update(self.pitch, self.log)
+            #rollAcceleration = self.pid_kit.roll.result(self.roll)
+            self.__iteration(pitchAcceleration, 0)
+        #self.log.plot()
