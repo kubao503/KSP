@@ -20,9 +20,9 @@ class PidSim():
         self.log = PidLog()
 
 
-    def iteration(self, pitchMomentum, rollMomentum):
-        self.pitchSpeed += pitchMomentum / self.PITCH_INERTIA
-        self.rollSpeed += rollMomentum / self.ROLL_INERTIA
+    def iteration(self, pitch_acceleration, roll_acceleration):
+        self.pitchSpeed += pitch_acceleration * self.PITCH_INERTIA
+        self.rollSpeed += roll_acceleration * self.ROLL_INERTIA
 
         self.pitch += self.pitchSpeed
         self.roll += self.rollSpeed
@@ -30,11 +30,11 @@ class PidSim():
 
     def simulate(self, iterations):
         for _ in range(iterations):
-            pitchMomentum = self.pitch_pid.update(self.pitch, self.log)
-            #rollMomentum = self.roll_pid.result(self.roll)
-            self.iteration(pitchMomentum, 0)
+            pitchAcceleration = self.pitch_pid.update(self.pitch, self.log)
+            #rollAcceleration = self.roll_pid.result(self.roll)
+            self.iteration(pitchAcceleration, 0)
         self.log.plot()
 
 
-sim = PidSim(pitch_inertia=10, roll_inertia=1, step=1)
+sim = PidSim(pitch_inertia=1, roll_inertia=1, step=1)
 sim.simulate(500)
