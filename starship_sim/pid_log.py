@@ -14,12 +14,13 @@ class PidLog():
         self.i_outputs.append(i)
         self.d_outputs.append(d)
 
-    def print(self):
-        print(self.errors)
+    def __get_output_sum(self):
+        return [sum(output) for output in zip(self.p_outputs, self.i_outputs, self.d_outputs)]
 
     def plot(self):
-        plt.plot(self.errors, color='r')
-        plt.plot(self.p_outputs, color='b')
-        plt.plot(self.i_outputs, color='y')
-        plt.plot(self.d_outputs, color='g')
+        plt.plot(self.errors, color='black')
+        plt.plot(self.p_outputs, color='r')
+        plt.plot(self.i_outputs, color='g')
+        plt.plot(self.d_outputs, color='b')
+        plt.plot(self.__get_output_sum(), color='grey')
         plt.show()
