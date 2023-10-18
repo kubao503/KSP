@@ -2,7 +2,7 @@
 clearScreen.
 
 local flapCount is 4.
-local dragFile is "drag_log.txt".
+local dragFile is "drag_to_angle.txt".
 
 function dragTest {
     function getAeroSurfacesTagged {
@@ -42,18 +42,36 @@ function dragTest {
         return dragSum / flapCount.
     }
 
+    function linearInterpolation {
+        parameter a, b, t.
+        return a * (1-t) + b * t.
+    }
+
     local full_modules is getAeroSurfacesTagged("full_flap").
     local test_modules is getAeroSurfacesTagged("test_flap").
 
-    local angle is 0.
-    until angle > 90 {
-        setDeployAngles(test_modules, angle).
-        wait 0.5.
+    local testDuration is 40.
+    local measurementCount is 100.
 
-        print "angle: " + angle at (0, 28).
-        log angle + ";" + (getAverageDrag(test_modules) / getAverageDrag(full_modules)) to dragFile.
+    local startTime is timeStamp():seconds.
 
-        set angle to angle + 1.
+    from {local i is 0.} until i = measurementCount step {set i to i+1.} do {
+        until false {
+            local testProgress is (timeStamp():seconds - startTime) / testDuration.
+            local angle is linearInterpolation(0, 90, testProgress).
+            setDeployAngles(test_modules, angle).
+            wait 0.
+
+            local dragRatio is getAverageDrag(test_modules) / getAverageDrag(full_modules).
+
+            print "angle: " + angle at (0, 28).
+            print "ratio: " + dragRatio at (0, 29).
+
+            if dragRatio >= (i / measurementCount) {
+                log i + ";" + angle to dragFile.
+                break.
+            }
+        }
     }
 }
 
