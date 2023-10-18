@@ -7,18 +7,34 @@ local flapRR is GetAeroSurface("rr_flap").
 
 local flapsModules is list(flapFL, flapFR, flapRL, flapRR).
 
+local maxDeployAngle is 90.
+
+for flap in flapsModules {
+    flap:setField("Deploy angle", 0).
+}
+
 function setFlapDrag {
-    parameter flapModule, targetDrag.
+    parameter flapIdx, targetDrag.
     local targetAngle is 0.
-    if flapModule:getField("Drag") < targetDrag {
-        set targetAngle to 90.
+    if flapsModules[flapIdx]:getField("Drag") < targetDrag {
+        set targetAngle to maxDeployAngle.
     } 
-    flapModule:setField("Deploy angle", targetAngle).
+    flapsModules[flapIdx]:setField("Deploy angle", targetAngle).
+}
+
+function setMaxDrag {
+    parameter flapIdx.
+    flapsModules[flapIdx]:setField("Deploy angle", maxDeployAngle).
 }
 
 function getFlapPosition {
     parameter idx.
     return flapsModules[idx]:part:position.
+}
+
+function getFlapDrag {
+    parameter idx.
+    return flapsModules[idx]:getField("Drag").
 }
 
 local function GetAeroSurface

@@ -1,2 +1,2 @@
 switch to 0.
-runPath("0:/analysis.ks").
+runPath("0:/new_starship/flap_pairs.ks").
