@@ -2,8 +2,6 @@ clearScreen. clearVecDraws().
 runOncePath("arrows.ks").
 runOncePath("fuel_balancing.ks").
 
-//lock pitchError to vang(ship:velocity:surface, ship:facing:forevector) - 90.
-
 function roundVec {
     parameter vec, digits.
     return v(round(vec:x, digits), round(vec:y, digits), round(vec:z, digits)).
@@ -23,11 +21,27 @@ local flapRR is GetAeroSurface("rr_flap").
 
 local flapsModules is list(flapFL, flapFR, flapRL, flapRR).
 
+addArrow(v(0,0,0), {return ship:velocity:surface.}, 3).
+addArrow(v(0,0,0), {return ship:facing:forevector.}, 10).
+
+local lastTime is timeStamp():seconds.
+local lastPitchError is 0.
+local lastPitchSpeed is 0.
 until false {
-    // Ship up is already normalized
-    from {local i is 0.} until i = flapsModules:length step {set i to i+1.} do {
-        //local totalDrag is flapsModules[i]:getField("Drag").
-        print round(vdot(flapsModules[i]:part:position, ship:facing:forevector), 5) at (0, 10+i).
-    }
-    wait 0.
+    local dt is max(timeStamp():seconds - lastTime, 1e-20).
+    set lastTime to lastTime + dt.
+
+    local pitchError is vang(ship:velocity:surface, ship:facing:forevector) - 90.
+
+    local pitchSpeed is (pitchError - lastPitchError) / dt.
+    set lastPitchError to pitchError.
+
+    local pitchAcc is (pitchSpeed - lastPitchSpeed) / dt.
+    set lastPitchSpeed to pitchSpeed.
+
+    print "pitch: " + pitchError at (0, 20).
+    print "speed: " + pitchSpeed at (0, 21).
+    print "accel: " + pitchAcc at (0, 22).
+
+    wait 0.01.
 }
