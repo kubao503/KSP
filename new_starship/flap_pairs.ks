@@ -1,11 +1,22 @@
 @lazyGlobal off.
 
-runOncePath("flaps.ks").
+local dir is "0:/new_starship/".
+runOncePath(dir + "single_flaps.ks").
 
 local pairs is list(
     list(0, 3),
     list(1, 2)
 ).
+
+function getFlapCount {
+    return pairs:length.
+}
+
+function getPairAngle {
+    parameter pairIdx.
+    local pair is pairs[pairIdx].
+    return vang(ship:velocity:surface, getFlapPosition(pair[0])) - 90.
+}
 
 function setPairTorque {
     parameter pairIdx, torque.
@@ -20,11 +31,4 @@ function setPairTorque {
         setMaxDrag(pair[1]).
         setFlapDrag(pair[0], flapForce).
     }
-}
-
-clearScreen.
-until false {
-    local torque is 0.1.
-    setPairTorque(0, torque).
-    setPairTorque(1, -torque).
 }
