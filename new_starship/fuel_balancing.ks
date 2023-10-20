@@ -1,5 +1,5 @@
 @lazyGlobal off.
-runOncePath("arrows.ks").
+runOncePath("0:/arrows.ks").
 
 local targetFuelTankPosition is -0.29. // Rises towards the engine
 

@@ -1,8 +1,7 @@
 @lazyGlobal off.
 
-local dir is "0:/new_starship/".
-runOncePath(dir + "fuel_balancing.ks").
-runOncePath(dir + "flap_pairs.ks").
+runOncePath("fuel_balancing.ks").
+runOncePath("flap_pairs.ks").
 
 local pidParams is list(1.2, 0, 0.3).
 

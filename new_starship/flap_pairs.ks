@@ -1,7 +1,6 @@
 @lazyGlobal off.
 
-local dir is "0:/new_starship/".
-runOncePath(dir + "single_flaps.ks").
+runOncePath("single_flaps.ks").
 
 local pairs is list(
     list(0, 3),
