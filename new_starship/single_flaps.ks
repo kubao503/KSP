@@ -27,6 +27,12 @@ function setMaxDrag {
     flapsModules[flapIdx]:setField("Deploy angle", maxDeployAngle).
 }
 
+function setMaxDragForAll {
+    from {local i is 0.} until i = flapsModules:length step {set i to i+1.} do {
+        setMaxDrag(i).
+    }
+}
+
 function getFlapPosition {
     parameter idx.
     return flapsModules[idx]:part:position.
@@ -35,6 +41,14 @@ function getFlapPosition {
 function getFlapDrag {
     parameter idx.
     return flapsModules[idx]:getField("Drag").
+}
+
+function getAvgDrag {
+    local dragSum is 0.
+    from {local i is 0.} until i = flapsModules:length step {set i to i+1.} do {
+        set dragSum to dragSum + getFlapDrag(i).
+    }
+    return dragSum / flapsModules:length.
 }
 
 local function GetAeroSurface
