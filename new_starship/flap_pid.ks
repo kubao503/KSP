@@ -2,7 +2,6 @@
 
 clearScreen.
 
-runOncePath("fuel_balancing.ks").
 runOncePath("flap_pairs.ks").
 runOncePath("pid_log.ks").
 
@@ -14,14 +13,16 @@ from {local i is 0.} until i = getFlapCount() step {set i to i+1.} do {
     set pidControllers[i]:setPoint to 0.
 }
 
-until false {
-    from {local i is 0.} until i = pidControllers:length step {set i to i+1.} do {
-        local error is getPairAngle(i).
-        pidControllers[i]:update(time:seconds, error).
-        local torque is pidControllers[i]:output.
-        setPairTorque(i, torque).
+function flapFlight {
+    until false {
+        from {local i is 0.} until i = pidControllers:length step {set i to i+1.} do {
+            local error is getPairAngle(i).
+            pidControllers[i]:update(time:seconds, error).
+            local torque is pidControllers[i]:output.
+            setPairTorque(i, torque).
+        }
+        print "error " + pidControllers[0]:error at (0, 17).
+        logPidOutput(pidControllers[0]).
+        wait 0.
     }
-    print "error " + pidControllers[0]:error at (0, 17).
-    logPidOutput(pidControllers[0]).
-    wait 0.
 }

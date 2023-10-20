@@ -1,10 +1,8 @@
 @lazyGlobal off.
 
-local targetFuelTankPosition is -0.29. // Rises towards the engine
+local targetPosition is -0.29. // Rises towards the engine
 
-function setFuelTankPosition {
-    parameter targetPosition.
-
+function balanceFuel {
     function getFuelTanks {
         local allResources is list().
         list resources in allResources.
@@ -52,5 +50,3 @@ function setFuelTankPosition {
     set fuelTransfer:active to false.
     set oxidizerTransfer:active to false.
 }
-
-setFuelTankPosition(targetFuelTankPosition).
