@@ -6,12 +6,12 @@ runOncePath("fuel_balancing.ks").
 runOncePath("flap_pairs.ks").
 runOncePath("pid_log.ks").
 
-local pidParams is list(1.2, 0, 0.3).
+local pidParams is list(1.2, 0, 0.4).
 
 local pidControllers is list().
 from {local i is 0.} until i = getFlapCount() step {set i to i+1.} do {
     pidControllers:add(pidLoop(pidParams[0], pidParams[1], pidParams[2])).
-    print pidControllers[i]:setpoint.
+    set pidControllers[i]:setPoint to 0.
 }
 
 until false {

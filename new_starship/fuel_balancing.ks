@@ -1,5 +1,4 @@
 @lazyGlobal off.
-runOncePath("0:/arrows.ks").
 
 local targetFuelTankPosition is -0.29. // Rises towards the engine
 
@@ -39,13 +38,11 @@ function setFuelTankPosition {
         set transferEndCondition to {return targetPosition >= getFuelTankPosition(mainFuelTank).}.
     }
 
-    clearScreen. clearVecDraws().
-
     set fuelTransfer:active to true.
     set oxidizerTransfer:active to true.
 
     until transferEndCondition() {
-        print round(getFuelTankPosition(mainFuelTank), 3) at (0, 5).
+        print "Fuel balance: " + round(getFuelTankPosition(mainFuelTank), 3) at (0, 5).
         if not fuelTransfer:active {
             print "Fuel transfer fail" at (0, 6).
             break.
