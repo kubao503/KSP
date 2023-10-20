@@ -7,7 +7,7 @@ local flapRR is GetAeroSurface("rr_flap").
 
 local flapsModules is list(flapFL, flapFR, flapRL, flapRR).
 
-local maxDeployAngle is 90.
+local maxDeployAngle is 75.
 
 for flap in flapsModules {
     flap:setField("Deploy angle", 0).
