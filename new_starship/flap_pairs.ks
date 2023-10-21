@@ -7,7 +7,7 @@ local pairs is list(
     list(1, 2)
 ).
 
-function getFlapCount {
+function getFlapPairCount {
     return pairs:length.
 }
 

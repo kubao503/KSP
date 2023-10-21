@@ -6,5 +6,5 @@ runOncePath("flap_flight.ks").
 
 balanceFuel().
 setMaxDragForAll().
-vacuumFlight().
-flapFlight().
+vacuumFlight(-5).
+flapFlight(0).

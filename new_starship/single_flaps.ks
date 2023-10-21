@@ -15,8 +15,12 @@ for flap in flapsModules {
 
 function setFlapDrag {
     parameter flapIdx, targetDrag.
+
+    local currentDrag is flapsModules[flapIdx]:getField("Drag").
+    local dragDiff is targetDrag - currentDrag.
+
     local targetAngle is 0.
-    if flapsModules[flapIdx]:getField("Drag") < targetDrag {
+    if dragDiff > 0 {
         set targetAngle to maxDeployAngle.
     } 
     flapsModules[flapIdx]:setField("Deploy angle", targetAngle).
