@@ -37,6 +37,10 @@ function setMaxDragForAll {
     }
 }
 
+function getFlapCount {
+    return flapsModules:length.
+}
+
 function getFlapPosition {
     parameter idx.
     return flapsModules[idx]:part:position.

@@ -5,12 +5,12 @@ clearScreen.
 runOncePath("flap_pairs.ks").
 runOncePath("pid_log.ks").
 
-//local pidParams is list(1.5, 0, 0.5).
-local pidParams is list(2, 0, 0).
+local pidParams is list(1.5, 0.3125, 1.8).
 local pidControllers is list().
 
 local function pidInit {
     parameter setPoint.
+    print "params: " + pidParams[0] + ", " + pidParams[1] + ", " + pidParams[2] at (0, 16).
     from {local i is 0.} until i = getFlapPairCount() step {set i to i+1.} do {
         pidControllers:add(pidLoop(pidParams[0], pidParams[1], pidParams[2])).
         set pidControllers[i]:setPoint to setPoint.
@@ -30,8 +30,13 @@ function flapFlight {
             setPairTorque(i, torque).
         }
         // Pid is for some reason giving error with changed sign
-        print "error " + -pidControllers[0]:error at (0, 17).
+        print "error " + round(-pidControllers[0]:error, 5) at (0, 17).
         logPidOutput(pidControllers[0]).
         wait 0.
+
+        //if ship:altitude < 38300 {
+            //print "END" at (0, 22).
+            //break. 
+        //}
     }
 }

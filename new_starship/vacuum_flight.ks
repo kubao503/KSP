@@ -2,7 +2,7 @@
 
 runOncePath("single_flaps.ks").
 
-local minFlapDrag is 0.1.
+local minFlapDrag is 0.3.
 
 function vacuumFlight {
     parameter setPoint.
