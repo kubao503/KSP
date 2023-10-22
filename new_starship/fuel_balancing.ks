@@ -1,20 +1,58 @@
 @lazyGlobal off.
 
-local targetPosition is -0.29. // Rises towards the engine
-
 function balanceFuel {
-    function getFuelTanks {
+    local targetPosition is -0.2646875. // Rises towards the engine
+
+    local fuelNames is uniqueSet("LiquidFuel", "Oxidizer").
+
+    function getTransferedResources {
         local allResources is list().
         list resources in allResources.
-        local tanks is list().
+        local correctResources is list().
+
         for resource in allResources {
-            if resource:name = "LiquidFuel" {
-                for part in resource:parts {
-                    tanks:add(part).
-                }
+            if fuelNames:contains(resource:name) {
+                correctResources:add(resource).
             }
         }
-        return tanks.
+        
+        return correctResources.
+    }
+
+    local transferedResources is getTransferedResources().
+
+    function getFuelTanks {
+        return transferedResources[0]:parts.
+    }
+
+    function getMassToAmounts {
+        local massToAmount is lexicon().
+        local currentAmounts is lexicon().
+
+        for resource in transferedResources {
+            currentAmounts:add(resource:name, resource:amount).
+        }
+
+        for currentRes in transferedResources {
+            local densityAmountRatioSum is 0.
+            for otherRes in transferedResources {
+                set densityAmountRatioSum to densityAmountRatioSum
+                    + currentRes:density * currentAmounts[otherRes:name] / currentAmounts[currentRes:name].
+            }
+            massToAmount:add(currentRes:name, 1/densityAmountRatioSum).
+        }
+
+        return massToAmount.
+    }
+
+    function allTransfersInactive {
+        parameter transfers.
+        for transfer in transfers {
+            if transfer:active {
+                return false.
+            }
+        }
+        return true.
     }
 
     function getFuelTankPosition {
@@ -26,27 +64,35 @@ function balanceFuel {
     local mainFuelTank is fuelTanks[1].
     local headerFuelTank is fuelTanks[0].
 
-    local fuelTransfer is transferAll("LiquidFuel", headerFuelTank, mainFuelTank).
-    local oxidizerTransfer is transferAll("Oxidizer", headerFuelTank, mainFuelTank).
-    local transferEndCondition is {return targetPosition <= getFuelTankPosition(mainFuelTank).}.
+    local massToAmounts is getMassToAmounts().
+    local fuelTransfers is list().
 
-    if targetPosition < getFuelTankPosition(mainFuelTank) {
-        set fuelTransfer to transferAll("LiquidFuel", mainFuelTank, headerFuelTank).
-        set oxidizerTransfer to transferAll("Oxidizer", mainFuelTank, headerFuelTank).
-        set transferEndCondition to {return targetPosition >= getFuelTankPosition(mainFuelTank).}.
+    local totalMassTransfer is (getFuelTankPosition(mainFuelTank) - targetPosition)
+                    / (getFuelTankPosition(mainFuelTank) - getFuelTankPosition(headerFuelTank))
+                    * ship:mass.
+
+    local source is headerFuelTank.
+    local destination is mainFuelTank.
+
+    if totalMassTransfer < 0 {
+        set source to mainFuelTank.
+        set destination to headerFuelTank.
     }
 
-    set fuelTransfer:active to true.
-    set oxidizerTransfer:active to true.
+    for name in fuelNames {
+        local amount is abs(totalMassTransfer) * massToAmounts[name].
+        local fuelTransfer is transfer(name, source, destination, amount).
+        set fuelTransfer:active to true.
+        fuelTransfers:add(fuelTransfer).
+    }
 
-    until transferEndCondition() {
-        print "Fuel balance: " + round(getFuelTankPosition(mainFuelTank), 3) at (0, 5).
-        if not fuelTransfer:active {
-            print "Fuel transfer fail" at (0, 6).
-            break.
+    until allTransfersInactive(fuelTransfers) {
+        print "Fuel balance: " + getFuelTankPosition(mainFuelTank) at (0, 5).
+    }
+
+    for transfer in fuelTransfers {
+        if transfer:status = "Failed" {
+            print "FUEL TRANSFER FAIL" at (0, 6).
         }
     }
-
-    set fuelTransfer:active to false.
-    set oxidizerTransfer:active to false.
 }
